@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache Common Codec"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Derby DB JDBC"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
