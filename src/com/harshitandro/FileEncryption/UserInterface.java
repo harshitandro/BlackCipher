@@ -247,7 +247,7 @@ public class UserInterface {
 				if(selection==0){
 					try {
 						password=passwordField.getPassword();
-						dbObj= new Database(FileHandler.randomGenerator(), new String(password),true);
+						dbObj= new Database(FileHandler.randomSessionIDGenerator(), new String(password),true);
 						fileHandlerObj = new FileHandler(encryptionObj, dbObj);
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block
@@ -276,9 +276,9 @@ public class UserInterface {
 				String[] options = {"OK","Cancel"};
 				int selection = JOptionPane.showOptionDialog(null,panel,"Load Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
 				try {
-					System.out.println(FileHandler.randomGenerator());
+					System.out.println(FileHandler.randomSessionIDGenerator());
 					if(selection==0 && passwordField.getPassword().length!=0){
-					dbObj= new Database(FileHandler.randomGenerator(), new String(passwordField.getPassword()),false);
+					dbObj= new Database(FileHandler.randomSessionIDGenerator(), new String(passwordField.getPassword()),false);
 					fileHandlerObj = new FileHandler(encryptionObj, dbObj);
 					panelSession.setVisible(true);
 					panelWelcome.setVisible(false);

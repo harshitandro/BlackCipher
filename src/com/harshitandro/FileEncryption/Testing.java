@@ -1,16 +1,26 @@
 package com.harshitandro.FileEncryption;
 
 import java.io.File;
-import java.util.Random;
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
+import javax.swing.tree.DefaultMutableTreeNode;
 
 public class Testing {
 
 	public static void main(String[] args) throws Exception {
-		Database db = new Database("hello123","123456789",false);
-		System.out.println("hell ok ");
-		//db.createDB();
-		db.updateDB(new Random().nextInt(),new File("/home/harshitandro/new-fxml-settings.xml"),1,0,null);
-		System.out.println(db.totalFileCount());
+		FileHandler fileHandlerObj = new FileHandler("hs28071997lodha",FileHandler.CREATE_DB_TRUE,"/home/harshitandro/testing");
+		FileTree.rootNode=(DefaultMutableTreeNode) FileTree.createTree(new File("/home/harshitandro/testing/test").getAbsoluteFile());
+		fileHandlerObj.createFileList();
+		fileHandlerObj.printFileStorage();
+		boolean flag =fileHandlerObj.doFinal(1,fileHandlerObj.fileList);
+		if(flag)
+			System.out.println("Encryption Done");
+			
+		else 
+			System.out.println("Encryption Failed");
+		
+		
 	}
 
 }
