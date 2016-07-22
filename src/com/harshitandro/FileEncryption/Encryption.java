@@ -1,4 +1,5 @@
 /**
+
  * @author : Harshit Singh Lodha (harshitandro@gmail.com)
  */
 package com.harshitandro.FileEncryption;
@@ -37,9 +38,9 @@ public class Encryption {
 	}
 	
 	public ArrayList<byte[]> doFinal(FileInputStream FileInput,FileOutputStream FileOutput,int Mode,byte[]...keydata) throws Exception{
-		int i;
+		int i=0;
 		if(Mode==ENCRYPTION_MODE){
-			key=genRandomSecretKey();
+			key=genRandomSecretKey();  
 			secretKey = new SecretKeySpec(key,"AES");
 			cipher= Cipher.getInstance("AES/CBC/PKCS5Padding");
 			cipher.init(Cipher.ENCRYPT_MODE,secretKey);
@@ -53,7 +54,7 @@ public class Encryption {
 			if(Mode==DECRYPTION_MODE){
 				this.key=keydata[0];
 				this.IV=keydata[1];
-				secretKey = new SecretKeySpec(key, "AES");
+				secretKey = new SecretKeySpec(key,"AES");
 				IVSpec= new IvParameterSpec(IV);
 				cipher= Cipher.getInstance("AES/CBC/PKCS5Padding");
 				cipher.init(Cipher.DECRYPT_MODE, secretKey,IVSpec);

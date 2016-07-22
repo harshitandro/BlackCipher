@@ -33,13 +33,14 @@ public class Database {
 	static final int  BASE_TABLE = 0;
 	static final int ENCRYPTED_TABLE = 1;
 	
-	Database(String sessionIDNumber,String password,boolean toCreate,String rootDir) throws Exception{
+	Database(String sessionIDNumber,String password,boolean toCreate,String rootDirParent) throws Exception{
+		rootDirParent=new File(rootDirParent).getAbsoluteFile().getParent();
 		sessionID=sessionIDNumber;
 		Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
 		if(toCreate)
-			connection = DriverManager.getConnection("jdbc:derby:"+rootDir+"/"+sessionID+";"+"create=true;"+"user=a"+sessionID+";"+"password="+ password+";");
+			connection = DriverManager.getConnection("jdbc:derby:"+rootDirParent+"/"+sessionID+"_DB"+";"+"create=true;"+"user=a"+sessionID+";"+"password="+ password+";");
 		else
-			connection = DriverManager.getConnection("jdbc:derby:"+rootDir+"/"+sessionID+";"+"user="+sessionID+";"+"password="+ password+";");
+			connection = DriverManager.getConnection("jdbc:derby:"+rootDirParent+"/"+sessionID+"_DB"+";"+"user="+sessionID+";"+"password="+ password+";");
 		statement= connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE);
 		createDB();
 	}
@@ -56,21 +57,21 @@ public class Database {
 				+ "File_Name varchar(50),"
 				+ "File_Dir varchar(255) not null,"
 				+ "is_Dir boolean not null,"
-				+ "SHA_Sum varchar(255),"
+				+ "MD5_Sum varchar(128),"
 				+ "Last_Modified timestamp ,"
 				+ "Status char,"
-				+ "primary key(File_ID))";
+				+ "primary key(File_ID,MD5_Sum))";
 		statement.execute(statementStr);
 		
 		statementStr="create table Data_Table_encrypted ("
 				+ "File_ID int not null,"
 				+ "File_Name varchar(50) not null,"
-				+ "SHA_Sum varchar(256) not null,"
+				+ "MD5_Sum varchar(128) not null,"
 				+ "Key_Value varchar(256) for bit data not null,"
 				+ "IV varchar(128) for bit data not null,"
 				+ "Status char not null,"
 				+ "Last_Modified timestamp not null,"
-				+ "primary key(File_ID,SHA_Sum))";
+				+ "primary key(File_ID,MD5_Sum))";
 		statement.execute(statementStr);
 		
 		statementStr="create table File_Tree ("		
@@ -85,7 +86,6 @@ public class Database {
 		oos.flush();
 		oos.close();
 		byte[] objectBlob = bos.toByteArray();
-		System.out.println(objectBlob.length +"B");
 		statementStr="insert into File_Tree values(?)";
 		updateQuery=connection.prepareStatement(statementStr);
 		updateQuery.setObject(1,objectBlob);
@@ -112,7 +112,6 @@ public class Database {
 							updateQuery.setTimestamp(2,new Timestamp(new Date().getTime()));
 							updateQuery.setInt(3,totalFileCount());
 							updateQuery.execute();
-							//updateQuery.close();
 							break;
 						}
 						else{
@@ -122,17 +121,11 @@ public class Database {
 							updateQuery.setTimestamp(2,new Timestamp(new Date().getTime()));
 							updateQuery.setInt(1,totalFileCount());
 							updateQuery.execute();
-							//updateQuery.close();
 							break;
 						}
 					
 			//Adds new file data to "base" table. 
-			case 1 :    System.out.println(getLastID(BASE_TABLE));
-						System.out.println(obj.getAbsoluteFile().getName()+FileHandler.createHash(obj.getAbsoluteFile()));
-						System.out.println(obj.getAbsoluteFile().getParent());
-						System.out.println(obj.getAbsoluteFile().isDirectory());
-						System.out.println(new Timestamp(obj.getAbsoluteFile().lastModified()));
-						statementStr="insert into Data_Table_base values (?,?,?,?,?,?,?)";
+			case 1 :   	statementStr="insert into Data_Table_base values (?,?,?,?,?,?,?)";
 						updateQuery=connection.prepareStatement(statementStr);
 						updateQuery.setInt(1,getLastID(BASE_TABLE));
 						if(!obj.getAbsoluteFile().isDirectory()){
@@ -148,9 +141,7 @@ public class Database {
 						updateQuery.setTimestamp(6,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						updateQuery.setString(7,"D");
 						updateQuery.execute();
-						//updateQuery.close();
 						updateDB(0,null,0,null);
-						//connection.commit();
 						break;
 			
 			//upon encryption , generate "encrypted" table entry for the given file 
@@ -164,14 +155,12 @@ public class Database {
 						updateQuery.setString(6,"E");
 						updateQuery.setTimestamp(7,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						updateQuery.execute();
-						//updateQuery.close();
 						//reset data values in 'base' table
 						statementStr="update Data_Table_base set status='E', Last_Modified=? where File_ID=?";
 						updateQuery=connection.prepareStatement(statementStr);
 						updateQuery.setTimestamp(1,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						updateQuery.setInt(2,File_ID);
 						updateQuery.execute();
-						//updateQuery.close();
 						break;
 			
 			//upon decryption , alter "base" table entry for the given file & delete "encrypted" table entry
@@ -184,7 +173,6 @@ public class Database {
 						subQuery.setTimestamp(1,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						subQuery.setInt(2,File_ID);
 						subQuery.executeQuery();
-						//updateQuery.close();
 						break;
 			
 			//permanent removal of file from DB after decryption.
@@ -192,24 +180,23 @@ public class Database {
 						updateQuery=connection.prepareStatement(statementStr);
 						updateQuery.setInt(1,File_ID);
 						updateQuery.execute();
-						//updateQuery.close();
 						break;
 		}
 	}
 	
-	boolean checkHash(String SHAStr, int table) throws Exception{
+	boolean checkHash(String MD5Str, int table) throws Exception{
 		 if(table==0){
-			 statementStr="select File_ID from Data_Table_base where SHA_Sum=?";
+			 statementStr="select File_ID from Data_Table_base where MD5_Sum=?";
 			 updateQuery=connection.prepareStatement(statementStr);
-			 updateQuery.setString(1,SHAStr);
+			 updateQuery.setString(1,MD5Str);
 			 queryResult=updateQuery.executeQuery();
 			 return queryResult.next();
 			 }
 		 else{
 			 if(table==1){
-				 statementStr="select File_ID from Data_Table_encrypted where SHA_Sum=?";
+				 statementStr="select File_ID from Data_Table_encrypted where MD5_Sum=?";
 				 updateQuery=connection.prepareStatement(statementStr);
-				 updateQuery.setString(1,SHAStr);
+				 updateQuery.setString(1,MD5Str);
 				 queryResult=updateQuery.executeQuery();
 				 return queryResult.next();
 			 }
@@ -217,19 +204,19 @@ public class Database {
 		 }
 	}
 	
-	String getName(String SHAStr,int table) throws Exception{
+	String getName(String MD5Str,int table) throws Exception{
 		 if(table==0){
-			 statementStr="select File_Name from Data_Table_base where SHA_Sum=?";
+			 statementStr="select File_Name from Data_Table_base where MD5_Sum=?";
 			 updateQuery=connection.prepareStatement(statementStr);
-			 updateQuery.setString(1,SHAStr);
+			 updateQuery.setString(1,MD5Str);
 			 queryResult=updateQuery.executeQuery();
 			 return queryResult.getString(1);
 			 }
 		 else{
 			 if(table==1){
-				 statementStr="select File_ID from Data_Table_encrypted where SHA_Sum=?";
+				 statementStr="select File_ID from Data_Table_encrypted where MD5_Sum=?";
 				 updateQuery=connection.prepareStatement(statementStr);
-				 updateQuery.setString(1,SHAStr);
+				 updateQuery.setString(1,MD5Str);
 				 queryResult=updateQuery.executeQuery();
 				 return queryResult.getString(1);
 			 }
@@ -242,7 +229,6 @@ public class Database {
 			 statementStr="select count(FILE_ID) from Data_Table_base";
 			 queryResult=statement.executeQuery(statementStr);
 			 queryResult.next();
-			 System.out.println(queryResult.getInt(1)+" this");
 			 return queryResult.getInt(1);
 		}
 		else{
@@ -250,7 +236,6 @@ public class Database {
 				 statementStr="select count(FILE_ID) from Data_Table_Encrypted";
 				 queryResult=statement.executeQuery(statementStr);
 				 queryResult.next();
-				 System.out.println(queryResult.getInt(1)+" this");
 				 return queryResult.getInt(1);
 		 	 }
 		return -1;
@@ -272,22 +257,22 @@ public class Database {
 		
 	}
 	
-	int getFileID(String SHAStr) throws SQLException{
-		statementStr="select File_ID from Data_Table_base where SHA_Sum=?";
+	int getFileID(String MD5Str) throws SQLException{
+		statementStr="select File_ID from Data_Table_base where MD5_Sum=?";
 		updateQuery=connection.prepareStatement(statementStr);
-		updateQuery.setString(1, SHAStr);
+		updateQuery.setString(1, MD5Str);
 		queryResult=updateQuery.executeQuery();
 		queryResult.next();
 		return queryResult.getInt(1);
 	}
 	
-	ResultSet getFileDetails(String SHAStr, int table) throws SQLException{
+	ResultSet getFileDetails(String MD5Str, int table) throws SQLException{
 		if(table==0){
-			statementStr="select * from Data_Table_base where SHA_Sum="+SHAStr;
+			statementStr="select * from Data_Table_base where MD5_Sum="+MD5Str;
 			queryResult=statement.executeQuery(statementStr);
 		}
 		if(table==1){
-			statementStr="select * from Data_Table_encrypted where SHA_Sum="+SHAStr;
+			statementStr="select * from Data_Table_encrypted where MD5_Sum="+MD5Str;
 			queryResult=statement.executeQuery(statementStr);
 		}
 		return queryResult;

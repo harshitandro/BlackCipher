@@ -13,13 +13,15 @@ import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Enumeration;
-
+import java.util.zip.*;
 import javax.swing.tree.DefaultMutableTreeNode;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
 
+import com.sun.nio.zipfs.ZipDirectoryStream;
+
 public class FileHandler extends Encryption{
+	String rootDir;
 	File OutputDirectory;
 	FileInputStream targetInputStream;
 	FileOutputStream targetOutputStream;
@@ -35,25 +37,21 @@ public class FileHandler extends Encryption{
 	static final boolean CREATE_DB_TRUE = true;
 	static final boolean CREATE_DB_FALSE = false;
 	
-	FileHandler(String password,boolean toCreate,String rootDir) throws Exception{
-		this.SessionID=randomSessionIDGenerator();
+	FileHandler(String SessionID,String password,boolean toCreate,String rootDir) throws Exception{
+		this.SessionID=SessionID;
 		this.password=password;
+		this.rootDir=rootDir;
 		databaseObj = new Database(SessionID, password, toCreate,rootDir);
 	}
 	
-	FileInputStream  genStream(File fileObj) throws FileNotFoundException{
-		targetInputStream = new FileInputStream(fileObj.getAbsoluteFile());
-		return targetInputStream;
-	}
+	void OpenDB(String Location,String SessionID,String password){
 		
-	static String createHash(File fileObj) throws FileNotFoundException, IOException{
-		if (fileObj.isFile())
-			return Base64.encodeBase64String(DigestUtils.sha256(new FileInputStream(fileObj)));
-		return "";
 	}
 	
-	static String createHash(String stringObj) throws FileNotFoundException, IOException{
-		return Base64.encodeBase64String(DigestUtils.sha256(stringObj));
+	static String createHash(File fileObj) throws FileNotFoundException, IOException{
+		if (fileObj.getAbsoluteFile().isFile())
+			return Base64.encodeBase64String(DigestUtils.md5(new FileInputStream(fileObj)));
+		return "";
 	}
 	
 	public static String randomSessionIDGenerator(){
@@ -75,6 +73,7 @@ public class FileHandler extends Encryption{
 			}
 		}
 		databaseObj.saveFileTreeToDB(FileTree.rootNode);
+		
 	}
 	
 	public void printFileStorage() throws FileNotFoundException, IOException{
@@ -85,25 +84,25 @@ public class FileHandler extends Encryption{
 		}
 	}
 	
-	public boolean doFinal(int Mode,ArrayList<File> filesToProcess) throws Exception{
+	public boolean doFinal(int Mode) throws Exception{
 		if(Mode==ENCRYPTION_MODE){
-			OutputDirectory=new File(fileList.get(0),"Encrypted");
+			OutputDirectory=new File(new File(rootDir).getAbsoluteFile().getParentFile(),SessionID+"_Encrypted");
 			OutputDirectory.getAbsoluteFile().mkdirs();
-			for(File x : filesToProcess){
+			for(File x : fileList){
 				if(x.getAbsoluteFile().isFile()){
-					byte[] keyUsed;
-					byte[] IVUsed;
+					byte[] keyUsed=null;
+					byte[] IVUsed=null;
 					InputFileName = x.getAbsoluteFile().getName();
-					targetInputStream = genStream(x);
+					targetInputStream = new FileInputStream(x.getAbsoluteFile());
 					OutputFileName = randomSessionIDGenerator();
 					File outputFile=new File(OutputDirectory,OutputFileName);
 					outputFile.getAbsoluteFile().createNewFile();
 					targetOutputStream = new FileOutputStream(outputFile);
-					ArrayList<byte[]> cipherKeys = doFinal(targetInputStream,targetOutputStream,ENCRYPTION_MODE,null);
+					ArrayList<byte[]> cipherKeys = doFinal(targetInputStream,targetOutputStream,ENCRYPTION_MODE,keyUsed);
 					keyUsed=cipherKeys.get(0);
 					IVUsed=cipherKeys.get(1);
 					int fileID=databaseObj.getFileID(createHash(x.getAbsoluteFile()));
-					if(!databaseObj.checkHash(createHash(x),Database.BASE_TABLE))
+					if(!databaseObj.checkHash(createHash(x.getAbsoluteFile()),Database.BASE_TABLE))
 						databaseObj.updateDB(fileID,x,1,null);
 					databaseObj.updateDB(fileID,outputFile,2,keyUsed,IVUsed);
 					
@@ -113,7 +112,7 @@ public class FileHandler extends Encryption{
 		}
 		else
 			if(Mode==DECRYPTION_MODE){
-				for(File x : filesToProcess){
+				for(File x : fileList){
 					if(x.getAbsoluteFile().isFile()){
 						ResultSet fileInfo = databaseObj.getFileDetails(createHash(x.getAbsoluteFile()),Database.ENCRYPTED_TABLE);
 						int fileID=fileInfo.getInt("FILE_ID");
@@ -124,11 +123,11 @@ public class FileHandler extends Encryption{
 						OutputDirectory = new File(decryptedFileInfo.getString("FILE_DIR"));
 						OutputDirectory.getAbsoluteFile().mkdirs();
 						InputFileName = x.getAbsoluteFile().getName();
-						targetInputStream = genStream(x);
+						targetInputStream = new FileInputStream(x.getAbsoluteFile());
 						File outputFile=new File(OutputDirectory,OutputFileName);
 						outputFile.getAbsoluteFile().createNewFile();
 						targetOutputStream = new FileOutputStream(outputFile);
-						ArrayList<byte[]> cipherKeys = doFinal(targetInputStream,targetOutputStream,DECRYPTION_MODE,keyUsed,IVUsed);
+						doFinal(targetInputStream,targetOutputStream,DECRYPTION_MODE,keyUsed,IVUsed);
 						databaseObj.updateDB(fileID,null,3,null);
 					}
 				}
@@ -136,7 +135,4 @@ public class FileHandler extends Encryption{
 		}
 		return false;
 	}
-	
-	public static void updateDB(){}
-	
 }

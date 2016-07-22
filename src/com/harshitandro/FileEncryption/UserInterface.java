@@ -2,17 +2,14 @@ package com.harshitandro.FileEncryption;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.FontFormatException;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -25,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
@@ -52,23 +50,27 @@ public class UserInterface {
 	Font font;
 	JScrollPane scrollPane;
 	char[] password;
+	String SessionID;
+	String rootLocation;
+	JLabel lblSessionId;
+	JLabel btnDirAdd;
+	
 	public void reset(){}
 	
 	/**
 	 * Create the application.
-	 * @throws IOException 
-	 * @throws FontFormatException 
+	 * @throws Exception 
 	 */
-	public UserInterface() throws IOException, FontFormatException {
+	public UserInterface() throws Exception {
 		initialize();
 	}
 		
 	/**
 	 * Initialize the contents of the frame.
-	 * @throws IOException 
-	 * @throws FontFormatException 
+	 * @throws Exception 
 	 */
-	private void initialize() throws IOException, FontFormatException {
+	private void initialize() throws Exception {
+		UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
 		frmBlackCipher = new JFrame();
 		frmBlackCipher.setResizable(false);
 		frmBlackCipher.getContentPane().setBackground(UIManager.getColor("ArrowButton.background"));
@@ -86,11 +88,11 @@ public class UserInterface {
 		frmBlackCipher.getContentPane().add(panelSession);
 		panelSession.setLayout(null);
 		
-		JLabel lblNewLabel_1 = new JLabel("No Data To Display");
-		lblNewLabel_1.setFont(new Font("Yu Gothic UI", Font.PLAIN, 11));
-		lblNewLabel_1.setHorizontalAlignment(SwingConstants.CENTER);
-		lblNewLabel_1.setBounds(217, 304, 147, 16);
-		panelSession.add(lblNewLabel_1);
+		JLabel lblBackground = new JLabel("No Data To Display");
+		lblBackground.setFont(new Font("Yu Gothic UI", Font.PLAIN, 11));
+		lblBackground.setHorizontalAlignment(SwingConstants.CENTER);
+		lblBackground.setBounds(217, 304, 147, 16);
+		panelSession.add(lblBackground);
 		
 		
 		JProgressBar progressBar = new JProgressBar();
@@ -98,17 +100,15 @@ public class UserInterface {
 		progressBar.setStringPainted(true);
 		panelSession.add(progressBar);
 		
-		JLabel lblSessionId = new JLabel("Session ID :");
-		lblSessionId.setBounds(214, 21, 67, 16);
-		panelSession.add(lblSessionId);
-		
-		JLabel lblNewLabel = new JLabel("XXXXXXX");
-		lblNewLabel.setBounds(310, 21, 55, 16);
-		panelSession.add(lblNewLabel);
-		
 		JButton btnEncryptSession = new JButton("Encrypt Session");
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				try {
+ 
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 		btnEncryptSession.setBounds(435, 562, 129, 28);
@@ -122,28 +122,32 @@ public class UserInterface {
 
 		font = Font.createFont(Font.TRUETYPE_FONT,new File("fontello.ttf"));
 		font = font.deriveFont(Font.PLAIN,18f);
-		JLabel label_1 = new JLabel("\ue81e");
-		label_1.setBounds(540, 58, 22, 20);
-		label_1.setFont(font);
-		label_1.addMouseListener(new MouseAdapter() {
+		JLabel btnFileAdd = new JLabel("\ue81e");
+		btnFileAdd.setBounds(540, 58, 22, 20);
+		btnFileAdd.setFont(font);
+		btnFileAdd.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				// TODO Auto-generated method stub
-				JFileChooser fileChooser = new JFileChooser();
-				fileChooser.setDialogTitle("temp");
+				JFileChooser fileChooser = new JFileChooser(new File(rootLocation));
+				fileChooser.setDialogTitle("Add Files");
 				fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				fileChooser.setMultiSelectionEnabled(true);
 				fileChooser.showOpenDialog(null);
-				FileTree.rootNode=(DefaultMutableTreeNode) FileTree.createTree(fileChooser.getSelectedFile().getAbsoluteFile());
-				fileHandlerObj.createFileList();
-				try {
-					fileHandlerObj.printFileStorage();
-				} catch (FileNotFoundException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+				File[] filesSelected=fileChooser.getSelectedFiles();
+				FileTree.rootNode=new DefaultMutableTreeNode(filesSelected[0].getAbsoluteFile().getParentFile());
+				for(File temp : filesSelected){
+					FileTree.rootNode.add(new DefaultMutableTreeNode(temp.getAbsoluteFile()));
 				}
+				try {
+					fileHandlerObj.createFileList();
+					btnFileAdd.setVisible(false);
+					btnDirAdd.setVisible(false);
+				} catch (Exception e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
+				
 				tree = new JTree(FileTree.rootNode);
 				tree.setCellRenderer(new DefaultTreeCellRenderer(){
 					 public Component getTreeCellRendererComponent(JTree tree, Object value,boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
@@ -159,31 +163,31 @@ public class UserInterface {
 				tree.setBackground(new Color(245, 245, 245));
 				tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
 				tree.setRootVisible(true);
+				lblBackground.setVisible(false);
 			}
 		});
-		panelSession.add(label_1);
+		panelSession.add(btnFileAdd);
 		
-		JLabel label_2 = new JLabel("\ue81c");
-		label_2.setBounds(510, 58, 22, 20);
-		label_2.setFont(font);
-		label_2.addMouseListener(new MouseAdapter() {
+		btnDirAdd = new JLabel("\ue81c");
+		btnDirAdd.setBounds(510, 58, 22, 20);
+		btnDirAdd.setFont(font);
+		btnDirAdd.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				// TODO Auto-generated method stub
-				JFileChooser fileChooser = new JFileChooser();
-				fileChooser.setDialogTitle("temp");
+				JFileChooser fileChooser = new JFileChooser(new File(rootLocation));
+				fileChooser.setAutoscrolls(true);
+				fileChooser.setDialogTitle("Select Directory To Encrypt");
 				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				fileChooser.showOpenDialog(null);
 				FileTree.rootNode=(DefaultMutableTreeNode) FileTree.createTree(fileChooser.getSelectedFile().getAbsoluteFile());
-				fileHandlerObj.createFileList();
 				try {
-					fileHandlerObj.printFileStorage();
-				} catch (FileNotFoundException e1) {
+					fileHandlerObj.createFileList();
+					btnFileAdd.setVisible(false);
+					btnDirAdd.setVisible(false);
+				} catch (Exception e2) {
 					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					e2.printStackTrace();
 				}
 				tree = new JTree(FileTree.rootNode);
 				tree.setCellRenderer(new DefaultTreeCellRenderer(){
@@ -200,14 +204,15 @@ public class UserInterface {
 				tree.setBackground(new Color(245, 245, 245));
 				tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
 				tree.setRootVisible(true);
+				lblBackground.setVisible(false);
 			}
 		});
-		panelSession.add(label_2);
+		panelSession.add(btnDirAdd);
 		
-		JLabel label_3 = new JLabel("\ue805");
-		label_3.setBounds(480, 58, 22, 20);
-		label_3.setFont(font);
-		panelSession.add(label_3);
+		JLabel btnSearch = new JLabel("\ue805");
+		btnSearch.setBounds(480, 58, 22, 20);
+		btnSearch.setFont(font);
+		panelSession.add(btnSearch);
 		
 		scrollPane = new JScrollPane();
 		scrollPane.setBounds(18, 78, 545, 483);
@@ -238,24 +243,49 @@ public class UserInterface {
 			public void actionPerformed(ActionEvent e) {
 				encryptionObj= new Encryption();
 				JPanel panel = new JPanel();
-				JLabel label = new JLabel("Enter Password : ");
+				panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+				JLabel lblPassword = new JLabel("New Password : ");
+				JLabel lblLocation = new JLabel("Root Location :"); 
+				JTextField locationField = new JTextField(20);
+				locationField.setEditable(false);
 				JPasswordField passwordField = new JPasswordField(20);
-				panel.add(label);
+				JButton btnLocationBrowse = new JButton("Browse");
+				panel.add(lblPassword);
 				panel.add(passwordField);
+				panel.add(lblLocation);
+				panel.add(locationField);
+				panel.add(btnLocationBrowse);
+				btnLocationBrowse.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						JFileChooser locationChooser = new JFileChooser("Choose Root Directory");
+						locationChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+						locationChooser.showOpenDialog(null);
+						rootLocation = locationChooser.getSelectedFile().getAbsoluteFile().getAbsolutePath();
+						locationField.setText(rootLocation);
+					}
+				});
 				String[] options = {"OK","Cancel"};
 				int selection = JOptionPane.showOptionDialog(null,panel,"Password For New Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
-				if(selection==0){
+				if(selection==0 && !locationField.getText().isEmpty()){
 					try {
 						password=passwordField.getPassword();
-						dbObj= new Database(FileHandler.randomSessionIDGenerator(), new String(password),true);
-						fileHandlerObj = new FileHandler(encryptionObj, dbObj);
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
 					panelSession.setVisible(true);
 					panelWelcome.setVisible(false);
-					
+					SessionID=FileHandler.randomSessionIDGenerator();
+					lblSessionId = new JLabel("Session ID : " +  SessionID);
+					lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
+					lblSessionId.setBounds(174, 21, 226, 16);
+					panelSession.add(lblSessionId);
+					try {
+						fileHandlerObj = new FileHandler(SessionID,password.toString(),true,rootLocation);
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
 			
 			}
@@ -268,20 +298,22 @@ public class UserInterface {
 			public void actionPerformed(ActionEvent arg0) {
 				encryptionObj= new Encryption();
 				JPanel panel = new JPanel();
-				//panel.setLayout(null);
-				JLabel lblPassword =new JLabel("Enter Master Password *: ");
+				JLabel lblPassword =new JLabel("Enter Master Password * ");
 				JPasswordField passwordField = new JPasswordField(20);
 				panel.add(lblPassword);
 				panel.add(passwordField);
 				String[] options = {"OK","Cancel"};
 				int selection = JOptionPane.showOptionDialog(null,panel,"Load Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
 				try {
-					System.out.println(FileHandler.randomSessionIDGenerator());
 					if(selection==0 && passwordField.getPassword().length!=0){
-					dbObj= new Database(FileHandler.randomSessionIDGenerator(), new String(passwordField.getPassword()),false);
-					fileHandlerObj = new FileHandler(encryptionObj, dbObj);
-					panelSession.setVisible(true);
-					panelWelcome.setVisible(false);
+						panelSession.setVisible(true);
+						panelWelcome.setVisible(false);
+						// to build seesion id from db
+						lblSessionId = new JLabel("Session ID : " +  SessionID);
+						lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
+						lblSessionId.setBounds(174, 21, 226, 16);
+						panelSession.add(lblSessionId);
+						// To do : get passwd frm db n verify it with this password.
 					}
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -294,8 +326,6 @@ public class UserInterface {
 		});
 		btnLoadSession.setBounds(304, 131, 105, 28);
 		panelWelcome.add(btnLoadSession);
-		
-		FileHandler obj = new FileHandler();
 		
 		menuBar = new JMenuBar();
 		frmBlackCipher.setJMenuBar(menuBar);

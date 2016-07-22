@@ -18,16 +18,15 @@ public class FileTree extends JTree {
 	
 	static MutableTreeNode createTree(File node){
 		DefaultMutableTreeNode ret = null;
-		if (node.getAbsoluteFile().isFile()){
-			ret =  new DefaultMutableTreeNode(node.getAbsoluteFile().getParentFile());
-			ret.add(new DefaultMutableTreeNode(node.getAbsoluteFile()));
-		}
 		if (node.getAbsoluteFile().isDirectory()){
 	    	ret = new DefaultMutableTreeNode(node.getAbsoluteFile());
-	    	for (File child: node.listFiles())
-	    		ret.add(createTree(child));
-	    }
-	    return ret;
+	    	for (File child: node.getAbsoluteFile().listFiles()){
+	    		ret.add(createTree(child.getAbsoluteFile()));
+	    	}
+		}
+		if (node.getAbsoluteFile().isFile())
+			ret =  new DefaultMutableTreeNode(node.getAbsoluteFile());
+		return ret;
 	}
 	
 }
