@@ -7,7 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.sql.Connection;
@@ -36,12 +35,13 @@ public class Database {
 	Database(String sessionIDNumber,String password,boolean toCreate,String rootDirParent) throws Exception{
 		rootDirParent=new File(rootDirParent).getAbsoluteFile().getParent();
 		sessionID=sessionIDNumber;
-		Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+		Class.forName("org.h2.Driver").newInstance();
 		if(toCreate)
-			connection = DriverManager.getConnection("jdbc:derby:"+rootDirParent+"/"+sessionID+"_DB"+";"+"create=true;"+"user=a"+sessionID+";"+"password="+ password+";");
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+"/"+sessionID+"_DB"+";MV_STORE=FALSE");
 		else
-			connection = DriverManager.getConnection("jdbc:derby:"+rootDirParent+"/"+sessionID+"_DB"+";"+"user="+sessionID+";"+"password="+ password+";");
-		statement= connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE);
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+"/"+sessionID+"_DB"+";"+"user="+sessionID+";"+"password="+ password+";");
+		
+		statement= connection.createStatement();
 		createDB();
 	}
 	
@@ -50,35 +50,35 @@ public class Database {
 				+ "session_ID varchar(40) not null,"
 				+ "Creation_Date timestamp not null,"
 				+ "Total_Files int not null)";
-		statement.execute(statementStr);
-		
+		statement.executeUpdate(statementStr);
+	
 		statementStr="create table Data_Table_base ("
 				+ "File_ID int not null,"
-				+ "File_Name varchar(50),"
+				+ "File_Name varchar(255),"
 				+ "File_Dir varchar(255) not null,"
 				+ "is_Dir boolean not null,"
 				+ "MD5_Sum varchar(128),"
 				+ "Last_Modified timestamp ,"
 				+ "Status char,"
 				+ "primary key(File_ID,MD5_Sum))";
-		statement.execute(statementStr);
-		
+		statement.executeUpdate(statementStr);
+
 		statementStr="create table Data_Table_encrypted ("
 				+ "File_ID int not null,"
 				+ "File_Name varchar(50) not null,"
 				+ "MD5_Sum varchar(128) not null,"
-				+ "Key_Value varchar(256) for bit data not null,"
-				+ "IV varchar(128) for bit data not null,"
+				+ "Key_Value blob not null,"
+				+ "IV blob not null,"
 				+ "Status char not null,"
 				+ "Last_Modified timestamp not null,"
 				+ "primary key(File_ID,MD5_Sum))";
-		statement.execute(statementStr);
-		
+		statement.executeUpdate(statementStr);
+
 		statementStr="create table File_Tree ("		
 				+ "Node blob not null)";
-		statement.execute(statementStr);
+		statement.executeUpdate(statementStr);
 	}
-	
+
 	void saveFileTreeToDB(DefaultMutableTreeNode rootNode) throws SQLException, IOException{
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(bos);
@@ -150,8 +150,8 @@ public class Database {
 						updateQuery.setInt(1,File_ID);
 						updateQuery.setString(2,FileHandler.randomSessionIDGenerator());
 						updateQuery.setString(3, FileHandler.createHash(obj.getAbsoluteFile()));
-						updateQuery.setBytes(4,keyData[0]);
-						updateQuery.setBytes(5,keyData[1]);
+						updateQuery.setBlob(4,new ByteArrayInputStream(keyData[0]));
+						updateQuery.setBlob(5,new ByteArrayInputStream(keyData[1]));
 						updateQuery.setString(6,"E");
 						updateQuery.setTimestamp(7,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						updateQuery.execute();
@@ -243,7 +243,7 @@ public class Database {
 	}
 	
 	int totalFileCount() throws SQLException{
-		 statementStr="select Count(ALL File_ID) from Data_Table_base where is_Dir=false";
+		 statementStr="select Count(File_ID) from Data_Table_base where is_Dir=false";
 		 queryResult=statement.executeQuery(statementStr);
 		 queryResult.first();
 		 return queryResult.getInt(1);

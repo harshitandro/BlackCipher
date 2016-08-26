@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="resources/font"/>
-	<classpathentry excluding="font/" kind="src" path="resources"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache Common Codec Windows"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle Windows"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Derby JDBC Windows"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry including="com/" kind="src" path="src"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache Common Codec"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Derby DB JDBC"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle Provider"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/H2"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -104,7 +104,8 @@ public class UserInterface {
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
- 
+					fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
+					
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();

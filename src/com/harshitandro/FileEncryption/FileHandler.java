@@ -11,14 +11,15 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.zip.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.swing.tree.DefaultMutableTreeNode;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
-
-import com.sun.nio.zipfs.ZipDirectoryStream;
 
 public class FileHandler extends Encryption{
 	String rootDir;
@@ -42,6 +43,7 @@ public class FileHandler extends Encryption{
 		this.password=password;
 		this.rootDir=rootDir;
 		databaseObj = new Database(SessionID, password, toCreate,rootDir);
+		
 	}
 	
 	ArrayList<File> getdbFiles(){
@@ -56,6 +58,7 @@ public class FileHandler extends Encryption{
 		}
 		return dbfileList;
 	}
+	
 	void zipDB() throws IOException{
 		int length = rootDir.length();
 		ArrayList<File> fileList = getdbFiles();
@@ -104,12 +107,26 @@ public class FileHandler extends Encryption{
 		tempList = fileList;
 		for(File x : tempList){
 			if(x.getAbsoluteFile().isFile()){
-				databaseObj.updateDB(databaseObj.getLastID(Database.BASE_TABLE)+1,x.getAbsoluteFile(),1,null);
-				databaseObj.connection.commit();
+				try {
+					databaseObj.updateDB(databaseObj.getLastID(Database.BASE_TABLE)+1,x.getAbsoluteFile(),1,null);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				try {
+					databaseObj.connection.commit();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
-		databaseObj.saveFileTreeToDB(FileTree.rootNode);
-		
+		try {
+			databaseObj.saveFileTreeToDB(FileTree.rootNode);
+		} catch (SQLException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void printFileStorage() throws FileNotFoundException, IOException{
@@ -120,7 +137,7 @@ public class FileHandler extends Encryption{
 		}
 	}
 	
-	public boolean doFinal(int Mode) throws Exception{
+	public boolean doFinal(int Mode) throws Exception {
 		if(Mode==ENCRYPTION_MODE){
 			OutputDirectory=new File(new File(rootDir).getAbsoluteFile().getParentFile(),SessionID+"_Encrypted");
 			OutputDirectory.getAbsoluteFile().mkdirs();
@@ -134,7 +151,13 @@ public class FileHandler extends Encryption{
 					File outputFile=new File(OutputDirectory,OutputFileName);
 					outputFile.getAbsoluteFile().createNewFile();
 					targetOutputStream = new FileOutputStream(outputFile);
-					ArrayList<byte[]> cipherKeys = doFinal(targetInputStream,targetOutputStream,ENCRYPTION_MODE,keyUsed);
+					ArrayList<byte[]> cipherKeys = null;
+					try {
+						cipherKeys = doFinal(targetInputStream,targetOutputStream,ENCRYPTION_MODE,keyUsed);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					keyUsed=cipherKeys.get(0);
 					IVUsed=cipherKeys.get(1);
 					int fileID=databaseObj.getFileID(createHash(x.getAbsoluteFile()));
