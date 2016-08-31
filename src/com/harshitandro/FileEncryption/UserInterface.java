@@ -1,5 +1,6 @@
 package com.harshitandro.FileEncryption;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
@@ -30,6 +31,8 @@ import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
+import jdk.nashorn.internal.scripts.JO;
+
 public class UserInterface {
 
 	JFrame frmBlackCipher;
@@ -44,7 +47,6 @@ public class UserInterface {
 	JPanel panelWelcome;
 	JPanel panelSession;
 	FileHandler fileHandlerObj;
-	Encryption encryptionObj;
 	Database dbObj;
 	JTree tree;
 	Font font;
@@ -54,6 +56,9 @@ public class UserInterface {
 	String rootLocation;
 	JLabel lblSessionId;
 	JLabel btnDirAdd;
+	JButton btnEncryptSession;
+	JLabel btnFileAdd;
+	JLabel lblBackground;
 	
 	public void reset(){}
 	
@@ -79,16 +84,164 @@ public class UserInterface {
 		frmBlackCipher.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmBlackCipher.setBounds(new Rectangle(0, 0, 600, 700));
 		frmBlackCipher.getContentPane().setName("WelcomePane");
-		frmBlackCipher.getContentPane().setLayout(null);
 		
 		panelSession = new JPanel();
-		panelSession.setVisible(false);
-		panelSession.setBorder(UIManager.getBorder("TitledBorder.border"));
 		panelSession.setBounds(6, 6, 582, 624);
+		frmBlackCipher.getContentPane().setLayout(null);
+		panelSession.setVisible(false);
+		
+		panelWelcome = new JPanel();
+		panelWelcome.setBounds(50, 239, 484, 159);
+		frmBlackCipher.getContentPane().add(panelWelcome);
+		panelWelcome.setVisible(true);
+		panelWelcome.setLayout(null);
+		
+		lblWelcomeToBlackcipher = new JLabel("Welcome to BlackCipher");
+		lblWelcomeToBlackcipher.setBounds(0, 0, 484, 48);
+		panelWelcome.add(lblWelcomeToBlackcipher);
+		lblWelcomeToBlackcipher.setHorizontalAlignment(SwingConstants.CENTER);
+		lblWelcomeToBlackcipher.setHorizontalTextPosition(SwingConstants.CENTER);
+		lblWelcomeToBlackcipher.setFont(new Font("Consolas", Font.BOLD, 40));
+		
+		lblTheUltimateFilefolder = new JLabel("The Simplified File/Folder Encryption utility");
+		lblTheUltimateFilefolder.setBounds(57, 55, 370, 25);
+		panelWelcome.add(lblTheUltimateFilefolder);
+		lblTheUltimateFilefolder.setFont(new Font("Candara", Font.PLAIN, 20));
+		lblTheUltimateFilefolder.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		JButton btnNewSession = new JButton("New Session");
+		btnNewSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JPanel panel = new JPanel();
+				panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+				JLabel lblPassword = new JLabel("New Password : ");
+				JLabel lblLocation = new JLabel("Root Location :"); 
+				JTextField locationField = new JTextField(20);
+				locationField.setEditable(false);
+				JPasswordField passwordField = new JPasswordField(20);
+				JButton btnLocationBrowse = new JButton("Browse");
+				panel.add(lblPassword);
+				panel.add(passwordField);
+				panel.add(lblLocation);
+				panel.add(locationField);
+				panel.add(btnLocationBrowse);
+				btnLocationBrowse.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						JFileChooser locationChooser = new JFileChooser("Choose Root Directory");
+						locationChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+						locationChooser.showOpenDialog(null);
+						rootLocation = locationChooser.getSelectedFile().getAbsoluteFile().getAbsolutePath();
+						locationField.setText(rootLocation);
+					}
+				});
+				String[] options = {"OK","Cancel"};
+				int selection = JOptionPane.showOptionDialog(null,panel,"Password For New Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
+				if(selection==0 && !locationField.getText().isEmpty()){
+					try {
+						password=passwordField.getPassword();
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					panelSession.setVisible(true);
+					panelWelcome.setVisible(false);
+					SessionID=FileHandler.randomSessionIDGenerator();
+					lblSessionId = new JLabel("Session ID : " +  SessionID);
+					lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
+					lblSessionId.setBounds(174, 21, 226, 16);
+					panelSession.add(lblSessionId);
+					try {
+						fileHandlerObj = new FileHandler(SessionID,new String(password),true,rootLocation);
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+			
+			}
+		});
+		btnNewSession.setBounds(69, 131, 102, 28);
+		panelWelcome.add(btnNewSession);
+		
+		JButton btnLoadSession = new JButton("Load Session");
+		btnLoadSession.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				JPanel panel = new JPanel();
+				JLabel lblPassword =new JLabel("Enter Master Password * ");
+				JPasswordField passwordField = new JPasswordField(20);
+				JLabel lblLocation =new JLabel("Location * ");
+				JTextField locationField = new JTextField(20);
+				panel.add(lblPassword);
+				panel.add(passwordField);
+				panel.add(lblLocation);
+				panel.add(locationField);
+				String[] options = {"OK","Cancel"};
+				JOptionPane dialogue = new JOptionPane();
+				dialogue.setLayout(null);
+				locationField.setEditable(false);
+				locationField.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						JFileChooser locationChooser = new JFileChooser("Choose Session File");
+						locationChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+						locationChooser.showOpenDialog(null);
+						rootLocation = locationChooser.getSelectedFile().getAbsoluteFile().getAbsolutePath();
+						locationField.setText(rootLocation);
+					}
+				});	
+				int selection=dialogue.showOptionDialog(null,panel,"Load Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);				
+				
+				try {
+					if(selection==0 && passwordField.getPassword().length!=0){
+						// to build session id from db
+						SessionID=locationField.getText(new File(rootLocation).getAbsoluteFile().getParent().length(),10);
+						password=passwordField.getPassword();
+						btnEncryptSession.setText("DecryptSession");						
+						lblSessionId = new JLabel("Session ID : " +  SessionID);
+						lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
+						lblSessionId.setBounds(174, 21, 226, 16);
+						panelSession.add(lblSessionId);
+						// To do : get passwd frm db n verify it with this password.
+						fileHandlerObj= new FileHandler(SessionID,new String(password), false, rootLocation);
+						if( selection==0 && (passwordField.getPassword().length == 0 )){
+							JOptionPane.showMessageDialog(null,"Mandatory Field Can't Be Left Empty","Invaild Input", JOptionPane.WARNING_MESSAGE);
+						}
+						tree = new JTree(FileTree.rootNode);
+						tree.setCellRenderer(new DefaultTreeCellRenderer(){
+							 public Component getTreeCellRendererComponent(JTree tree, Object value,boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+							        super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+							        Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+							        if (userObject instanceof File) {
+							            setText(((File)userObject).getName());
+							        }
+							        return this;
+							    }
+						});
+						scrollPane.setViewportView(tree);
+						tree.setBackground(new Color(245, 245, 245));
+						tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
+						tree.setRootVisible(true);
+						lblBackground.setVisible(false);
+						btnDirAdd.setVisible(false);
+						btnFileAdd.setVisible(false);
+						panelSession.setVisible(true);
+						panelWelcome.setVisible(false);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					dbObj=null;
+					JOptionPane.showMessageDialog(null,"Pasaword entered seems incorrect.Access Denied","Invaild Password", JOptionPane.ERROR_MESSAGE);
+				}
+				
+			}
+		});
+		btnLoadSession.setBounds(304, 131, 105, 28);
+		panelWelcome.add(btnLoadSession);
+		panelSession.setBorder(UIManager.getBorder("TitledBorder.border"));
 		frmBlackCipher.getContentPane().add(panelSession);
 		panelSession.setLayout(null);
 		
-		JLabel lblBackground = new JLabel("No Data To Display");
+		lblBackground = new JLabel("No Data To Display");
 		lblBackground.setFont(new Font("Yu Gothic UI", Font.PLAIN, 11));
 		lblBackground.setHorizontalAlignment(SwingConstants.CENTER);
 		lblBackground.setBounds(217, 304, 147, 16);
@@ -100,7 +253,7 @@ public class UserInterface {
 		progressBar.setStringPainted(true);
 		panelSession.add(progressBar);
 		
-		JButton btnEncryptSession = new JButton("Encrypt Session");
+		btnEncryptSession = new JButton("Encrypt Session");
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -123,7 +276,7 @@ public class UserInterface {
 
 		font = Font.createFont(Font.TRUETYPE_FONT,new File("fontello.ttf"));
 		font = font.deriveFont(Font.PLAIN,18f);
-		JLabel btnFileAdd = new JLabel("\ue81e");
+		btnFileAdd = new JLabel("\ue81e");
 		btnFileAdd.setBounds(540, 58, 22, 20);
 		btnFileAdd.setFont(font);
 		btnFileAdd.addMouseListener(new MouseAdapter() {
@@ -219,114 +372,6 @@ public class UserInterface {
 		scrollPane.setBounds(18, 78, 545, 483);
 		scrollPane.setViewportBorder(null);
 		panelSession.add(scrollPane);
-		
-		panelWelcome = new JPanel();
-		panelWelcome.setBounds(50, 239, 484, 159);
-		frmBlackCipher.getContentPane().add(panelWelcome);
-		panelWelcome.setVisible(true);
-		panelWelcome.setLayout(null);
-		
-		lblWelcomeToBlackcipher = new JLabel("Welcome to BlackCipher");
-		lblWelcomeToBlackcipher.setBounds(0, 0, 484, 48);
-		panelWelcome.add(lblWelcomeToBlackcipher);
-		lblWelcomeToBlackcipher.setHorizontalAlignment(SwingConstants.CENTER);
-		lblWelcomeToBlackcipher.setHorizontalTextPosition(SwingConstants.CENTER);
-		lblWelcomeToBlackcipher.setFont(new Font("Consolas", Font.BOLD, 40));
-		
-		lblTheUltimateFilefolder = new JLabel("The Simplified File/Folder Encryption utility");
-		lblTheUltimateFilefolder.setBounds(57, 55, 370, 25);
-		panelWelcome.add(lblTheUltimateFilefolder);
-		lblTheUltimateFilefolder.setFont(new Font("Candara", Font.PLAIN, 20));
-		lblTheUltimateFilefolder.setAlignmentX(Component.CENTER_ALIGNMENT);
-		
-		JButton btnNewSession = new JButton("New Session");
-		btnNewSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				encryptionObj= new Encryption();
-				JPanel panel = new JPanel();
-				panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-				JLabel lblPassword = new JLabel("New Password : ");
-				JLabel lblLocation = new JLabel("Root Location :"); 
-				JTextField locationField = new JTextField(20);
-				locationField.setEditable(false);
-				JPasswordField passwordField = new JPasswordField(20);
-				JButton btnLocationBrowse = new JButton("Browse");
-				panel.add(lblPassword);
-				panel.add(passwordField);
-				panel.add(lblLocation);
-				panel.add(locationField);
-				panel.add(btnLocationBrowse);
-				btnLocationBrowse.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent arg0) {
-						JFileChooser locationChooser = new JFileChooser("Choose Root Directory");
-						locationChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-						locationChooser.showOpenDialog(null);
-						rootLocation = locationChooser.getSelectedFile().getAbsoluteFile().getAbsolutePath();
-						locationField.setText(rootLocation);
-					}
-				});
-				String[] options = {"OK","Cancel"};
-				int selection = JOptionPane.showOptionDialog(null,panel,"Password For New Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
-				if(selection==0 && !locationField.getText().isEmpty()){
-					try {
-						password=passwordField.getPassword();
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					panelSession.setVisible(true);
-					panelWelcome.setVisible(false);
-					SessionID=FileHandler.randomSessionIDGenerator();
-					lblSessionId = new JLabel("Session ID : " +  SessionID);
-					lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
-					lblSessionId.setBounds(174, 21, 226, 16);
-					panelSession.add(lblSessionId);
-					try {
-						fileHandlerObj = new FileHandler(SessionID,password.toString(),true,rootLocation);
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
-			
-			}
-		});
-		btnNewSession.setBounds(69, 131, 102, 28);
-		panelWelcome.add(btnNewSession);
-		
-		JButton btnLoadSession = new JButton("Load Session");
-		btnLoadSession.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				encryptionObj= new Encryption();
-				JPanel panel = new JPanel();
-				JLabel lblPassword =new JLabel("Enter Master Password * ");
-				JPasswordField passwordField = new JPasswordField(20);
-				panel.add(lblPassword);
-				panel.add(passwordField);
-				String[] options = {"OK","Cancel"};
-				int selection = JOptionPane.showOptionDialog(null,panel,"Load Session",JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,null, options, options[0]);
-				try {
-					if(selection==0 && passwordField.getPassword().length!=0){
-						panelSession.setVisible(true);
-						panelWelcome.setVisible(false);
-						// to build seesion id from db
-						lblSessionId = new JLabel("Session ID : " +  SessionID);
-						lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
-						lblSessionId.setBounds(174, 21, 226, 16);
-						panelSession.add(lblSessionId);
-						// To do : get passwd frm db n verify it with this password.
-					}
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				if( selection==0 && (passwordField.getPassword().length == 0 )){
-					JOptionPane.showMessageDialog(null,"Mandatory Field Can't Be Left Empty","Invaild Input", JOptionPane.WARNING_MESSAGE);
-				}
-			}
-		});
-		btnLoadSession.setBounds(304, 131, 105, 28);
-		panelWelcome.add(btnLoadSession);
 		
 		menuBar = new JMenuBar();
 		frmBlackCipher.setJMenuBar(menuBar);

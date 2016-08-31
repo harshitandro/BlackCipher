@@ -37,12 +37,15 @@ public class Database {
 		sessionID=sessionIDNumber;
 		Class.forName("org.h2.Driver").newInstance();
 		if(toCreate)
-			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+"/"+sessionID+"_DB"+";MV_STORE=FALSE");
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE","blackcipher",password);
 		else
-			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+"/"+sessionID+"_DB"+";"+"user="+sessionID+";"+"password="+ password+";");
+			System.out.println(sessionID);
+			System.out.println(password);
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE","blackcipher",password);
 		
 		statement= connection.createStatement();
-		createDB();
+		if(toCreate)
+			createDB();
 	}
 	
 	void createDB() throws Exception{
@@ -134,7 +137,7 @@ public class Database {
 						}
 						else{
 							updateQuery.setString(2,obj.getAbsoluteFile().getName());
-							updateQuery.setString(5,null);
+							updateQuery.setString(5,"");
 						}
 						updateQuery.setString(3,obj.getAbsoluteFile().getParent());
 						updateQuery.setBoolean(4,obj.getAbsoluteFile().isDirectory());

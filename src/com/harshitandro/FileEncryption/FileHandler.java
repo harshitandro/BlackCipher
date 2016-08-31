@@ -32,6 +32,7 @@ public class FileHandler extends Encryption{
 	String password;
 	int Mode=-1;
 	Database databaseObj;
+	Encryption encryptionObj;
 	ArrayList<File> fileList = new ArrayList<File>();
 	static final int ENCRYPTION_MODE = 1;
 	static final int DECRYPTION_MODE = 0;
@@ -43,7 +44,10 @@ public class FileHandler extends Encryption{
 		this.password=password;
 		this.rootDir=rootDir;
 		databaseObj = new Database(SessionID, password, toCreate,rootDir);
-		
+		if(!toCreate)
+			FileTree.rootNode=databaseObj.getFileTreeFromDB();
+		encryptionObj= new Encryption();
+		System.out.println(password);
 	}
 	
 	ArrayList<File> getdbFiles(){
@@ -83,10 +87,7 @@ public class FileHandler extends Encryption{
 		}
 		zipOutStream.close();
 	}
-	
-	void unzipDB(File DB_file,String SessionID,String password){
-	}
-	
+		
 	static String createHash(File fileObj) throws FileNotFoundException, IOException{
 		if (fileObj.getAbsoluteFile().isFile())
 			return Base64.encodeBase64String(DigestUtils.md5(new FileInputStream(fileObj)));
@@ -106,7 +107,6 @@ public class FileHandler extends Encryption{
 		ArrayList<File> tempList = new ArrayList<File>(15);
 		tempList = fileList;
 		for(File x : tempList){
-			if(x.getAbsoluteFile().isFile()){
 				try {
 					databaseObj.updateDB(databaseObj.getLastID(Database.BASE_TABLE)+1,x.getAbsoluteFile(),1,null);
 				} catch (Exception e) {
@@ -120,7 +120,6 @@ public class FileHandler extends Encryption{
 					e.printStackTrace();
 				}
 			}
-		}
 		try {
 			databaseObj.saveFileTreeToDB(FileTree.rootNode);
 		} catch (SQLException | IOException e) {
