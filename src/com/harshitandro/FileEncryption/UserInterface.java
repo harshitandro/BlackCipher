@@ -194,7 +194,7 @@ public class UserInterface {
 				try {
 					if(selection==0 && passwordField.getPassword().length!=0){
 						// to build session id from db
-						SessionID=locationField.getText(new File(rootLocation).getAbsoluteFile().getParent().length(),10);
+						SessionID=locationField.getText(new File(rootLocation).getAbsoluteFile().getParent().length(),11);
 						password=passwordField.getPassword();
 						btnEncryptSession.setText("DecryptSession");						
 						lblSessionId = new JLabel("Session ID : " +  SessionID);
@@ -206,6 +206,7 @@ public class UserInterface {
 						if( selection==0 && (passwordField.getPassword().length == 0 )){
 							JOptionPane.showMessageDialog(null,"Mandatory Field Can't Be Left Empty","Invaild Input", JOptionPane.WARNING_MESSAGE);
 						}
+						fileHandlerObj.databaseObj.getFileTreeFromDB();
 						tree = new JTree(FileTree.rootNode);
 						tree.setCellRenderer(new DefaultTreeCellRenderer(){
 							 public Component getTreeCellRendererComponent(JTree tree, Object value,boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {

@@ -16,15 +16,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+
+import com.sun.org.apache.bcel.internal.generic.NEW;
+
+import sun.util.resources.cldr.ur.CurrencyNames_ur;
 
 public class Database {
 	String sessionID;
 	Connection connection;
 	String statementStr;
 	String subStatementStr;
+	String rootDir;
 	Statement statement;
 	PreparedStatement updateQuery;
 	PreparedStatement subQuery ;
@@ -33,6 +39,7 @@ public class Database {
 	static final int ENCRYPTED_TABLE = 1;
 	
 	Database(String sessionIDNumber,String password,boolean toCreate,String rootDirParent) throws Exception{
+		this.rootDir=new File(rootDirParent).getAbsoluteFile().getParent();
 		rootDirParent=new File(rootDirParent).getAbsoluteFile().getParent();
 		sessionID=sessionIDNumber;
 		Class.forName("org.h2.Driver").newInstance();
@@ -41,7 +48,7 @@ public class Database {
 		else
 			System.out.println(sessionID);
 			System.out.println(password);
-			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE","blackcipher",password);
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE;IFEXISTS=TRUE","blackcipher",password);
 		
 		statement= connection.createStatement();
 		if(toCreate)
@@ -95,14 +102,72 @@ public class Database {
 		updateQuery.execute();		
 	}
 	
-	DefaultMutableTreeNode getFileTreeFromDB() throws SQLException, IOException, ClassNotFoundException{
-		statementStr="select Node from File_Tree";
-		statement.execute(statementStr);
-		queryResult=statement.getResultSet();
-		queryResult.next();
-		ByteArrayInputStream bis = new ByteArrayInputStream(queryResult.getBytes(1));
-		ObjectInputStream ois = new ObjectInputStream(bis);
-		return new DefaultMutableTreeNode(ois.readObject());
+	void getFileTreeFromDB() throws SQLException, IOException{
+		statementStr = "select File_Name,File_Dir,Is_Dir from Data_Table_base";
+		queryResult=statement.executeQuery(statementStr);
+		/*DefaultMutableTreeNode parNode;
+		DefaultMutableTreeNode tempNode = null;
+		String parLocation;
+		DefaultMutableTreeNode currNode =new DefaultMutableTreeNode(new File(queryResult.getString("File_Dir"),queryResult.getString("File_Name")));
+		FileTree.rootNode=currNode;
+		parNode=currNode;
+		parLocation=queryResult.getString("File_Dir");
+		while(queryResult.next()){
+			currNode=new DefaultMutableTreeNode(new File(queryResult.getString(2),queryResult.getString(1)));
+			if(parLocation==queryResult.getString("File_Dir")){
+				parNode.add(currNode);
+			}
+			else{
+				
+			}
+			FileTree.rootNode.getChildAt(FileTree.rootNode.getIndex(tempNode));
+			FileTree.rootNode.getLastLeaf().add(tempNode);
+		}*/
+		ArrayList<File>dirList = new ArrayList<>();
+		ArrayList<File>fileList = new ArrayList<>();
+		ArrayList<DefaultMutableTreeNode>dirNodeList = new ArrayList<>();
+		ArrayList<DefaultMutableTreeNode>fileNodeList = new ArrayList<>();
+		File temp = new File(".temp");
+		temp.mkdir();
+		int len = rootDir.length();
+		System.out.println(len);
+		while(queryResult.next()){
+			if(queryResult.getBoolean("Is_Dir")){
+				dirList.add(new File(queryResult.getString("File_Dir"),queryResult.getString("File_Name")));
+				new File(temp,queryResult.getString("File_Dir").substring(len)+File.separator+queryResult.getString("File_Name")).mkdirs();
+			}
+			else{
+				fileList.add(new File(queryResult.getString("File_Dir"),queryResult.getString("File_Name")));
+				new File(temp,queryResult.getString("File_Dir").substring(len)+File.separator+queryResult.getString("File_Name")).createNewFile();
+			}
+		}
+		FileTree.rootNode=(DefaultMutableTreeNode) FileTree.createTree(temp.getAbsoluteFile());
+		/*int i=0,j=0;
+		for(File curr : dirList){
+			dirNodeList.add(new DefaultMutableTreeNode(curr));
+			for(File currFile : fileList){
+				if(currFile.getAbsoluteFile().getPath()==curr.getAbsolutePath()){
+					dirNodeList.get(i).add(new DefaultMutableTreeNode(currFile));
+					
+				}
+			}
+			i++;
+		}
+		
+		for(i=dirList.size()-1;i>=0;i--){
+			File temp =dirList.get(i);
+			for(j=dirList.size()-1;j>=0;j--){
+				File curr = dirList.get(j);
+				if(curr.getAbsoluteFile().getParent()==temp.getAbsolutePath()){
+					dirNodeList.get(i).add(dirNodeList.get(j));
+					//dirNodeList.remove(j);
+					//dirList.remove(j);
+					//j--;
+				}
+			}
+		}
+		FileTree.rootNode=dirNodeList.get(0);
+		*/
 	}
 	
 	void updateDB(int File_ID,File obj , int target , byte[]...keyData) throws Exception{

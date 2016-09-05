@@ -44,50 +44,10 @@ public class FileHandler extends Encryption{
 		this.password=password;
 		this.rootDir=rootDir;
 		databaseObj = new Database(SessionID, password, toCreate,rootDir);
-		if(!toCreate)
-			FileTree.rootNode=databaseObj.getFileTreeFromDB();
 		encryptionObj= new Encryption();
 		System.out.println(password);
 	}
 	
-	ArrayList<File> getdbFiles(){
-		ArrayList<File> dbfileList = new ArrayList<File>(15);
-		DefaultMutableTreeNode dbfiles ;
-		System.out.println(rootDir+File.separator+SessionID+"_DB");
-		File t = new File(new File(rootDir).getAbsoluteFile().getParent(),SessionID+"_DB");
-		dbfiles=(DefaultMutableTreeNode)FileTree.createTree(t);
-		Enumeration<DefaultMutableTreeNode> temp = dbfiles.preorderEnumeration();
-		while(temp.hasMoreElements()){
-			dbfileList.add((File)temp.nextElement().getUserObject());
-		}
-		return dbfileList;
-	}
-	
-	void zipDB() throws IOException{
-		int length = rootDir.length();
-		ArrayList<File> fileList = getdbFiles();
-		System.out.println(fileList.toArray().length);
-		FileOutputStream fileOutStream = new FileOutputStream(rootDir+File.separator+SessionID+"_DB.bcdb");
-		ZipOutputStream zipOutStream = new ZipOutputStream(fileOutStream);
-		ZipEntry fileEntry ;
-		FileInputStream fileInStream ;
-		byte[] buffer= new byte[1024];
-		for(File x : fileList){
-			if(x.getAbsoluteFile().isFile()){
-				fileInStream = new FileInputStream(x.getAbsoluteFile());
-				fileEntry = new ZipEntry(x.getAbsoluteFile().getAbsolutePath().substring(length));
-				zipOutStream.putNextEntry(fileEntry);
-				while((fileInStream.read(buffer))>0){
-					zipOutStream.write(buffer);
-				}
-				zipOutStream.closeEntry();
-				fileInStream.close();
-			}
-		
-		}
-		zipOutStream.close();
-	}
-		
 	static String createHash(File fileObj) throws FileNotFoundException, IOException{
 		if (fileObj.getAbsoluteFile().isFile())
 			return Base64.encodeBase64String(DigestUtils.md5(new FileInputStream(fileObj)));
