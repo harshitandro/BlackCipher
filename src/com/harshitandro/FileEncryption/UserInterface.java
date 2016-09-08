@@ -59,6 +59,7 @@ public class UserInterface {
 	JButton btnEncryptSession;
 	JLabel btnFileAdd;
 	JLabel lblBackground;
+	int mode =-1;
 	
 	public void reset(){}
 	
@@ -143,6 +144,7 @@ public class UserInterface {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
+					mode=FileHandler.ENCRYPTION_MODE;
 					panelSession.setVisible(true);
 					panelWelcome.setVisible(false);
 					SessionID=FileHandler.randomSessionIDGenerator();
@@ -194,9 +196,11 @@ public class UserInterface {
 				try {
 					if(selection==0 && passwordField.getPassword().length!=0){
 						// to build session id from db
-						SessionID=locationField.getText(new File(rootLocation).getAbsoluteFile().getParent().length(),11);
+						mode=FileHandler.DECRYPTION_MODE;
+						SessionID=new File(locationField.getText()).getAbsoluteFile().getName().substring(0,10);
+						System.out.println(SessionID);
 						password=passwordField.getPassword();
-						btnEncryptSession.setText("DecryptSession");						
+						btnEncryptSession.setText("Decrypt Session");						
 						lblSessionId = new JLabel("Session ID : " +  SessionID);
 						lblSessionId.setHorizontalAlignment(SwingConstants.CENTER);
 						lblSessionId.setBounds(174, 21, 226, 16);
@@ -206,7 +210,7 @@ public class UserInterface {
 						if( selection==0 && (passwordField.getPassword().length == 0 )){
 							JOptionPane.showMessageDialog(null,"Mandatory Field Can't Be Left Empty","Invaild Input", JOptionPane.WARNING_MESSAGE);
 						}
-						fileHandlerObj.databaseObj.getFileTreeFromDB();
+						fileHandlerObj.getFileTreeFromDB();
 						tree = new JTree(FileTree.rootNode);
 						tree.setCellRenderer(new DefaultTreeCellRenderer(){
 							 public Component getTreeCellRendererComponent(JTree tree, Object value,boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
@@ -258,7 +262,15 @@ public class UserInterface {
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
+					if(mode==FileHandler.ENCRYPTION_MODE){
+						fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
+						System.out.println("in enc of btn");
+					}
+					else
+						if(mode==FileHandler.DECRYPTION_MODE){
+							fileHandlerObj.doFinal(FileHandler.DECRYPTION_MODE);
+							System.out.println("in dec of btn");
+						}
 					
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block

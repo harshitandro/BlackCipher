@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry including="com/" kind="src" path="src"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache Common Codec"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle Provider"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/H2"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Apache Common Codec Fedora"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Bouncy Castle Provider Fedora"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/H2 Fedora"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

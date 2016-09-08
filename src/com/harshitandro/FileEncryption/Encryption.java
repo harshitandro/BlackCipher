@@ -49,6 +49,8 @@ public class Encryption {
 			while((i=FileInput.read(blockSize))!=-1){
 				cipherOutput.write(blockSize,0,i);
 			}
+			cipherOutput.close();
+			FileInput.close();
 		}
 		else 
 			if(Mode==DECRYPTION_MODE){
@@ -62,11 +64,12 @@ public class Encryption {
 				while((i=cipherInput.read(blockSize))!=-1){
 					FileOutput.write(blockSize,0,i);
 				}
+				FileOutput.close();
+				cipherInput.close();
 		}
 		ArrayList<byte[]> keyInfo =new ArrayList<byte[]>(2);
 		keyInfo.add(key);
 		keyInfo.add(IV);
-		FileInput.close();
 		return keyInfo;
 	}
 	
