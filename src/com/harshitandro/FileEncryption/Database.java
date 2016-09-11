@@ -44,11 +44,9 @@ public class Database {
 		sessionID=sessionIDNumber;
 		Class.forName("org.h2.Driver").newInstance();
 		if(toCreate)
-			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE","blackcipher",password);
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE",sessionID,password);
 		else
-			//System.out.println(sessionID);
-			//System.out.println(password);
-			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE;IFEXISTS=TRUE","blackcipher",password);
+			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE;IFEXISTS=TRUE",sessionID,password);
 		
 		statement= connection.createStatement();
 		if(toCreate)
@@ -291,6 +289,17 @@ public class Database {
 		statementStr="select * from Details";
 		queryResult=statement.executeQuery(statementStr);
 		return queryResult;
+	}
+	
+	boolean changeDBPassword(String password) {
+		statementStr = "alter user "+sessionID+" set password '"+password+"'";
+		try {
+			statement.execute(statementStr);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 }
 
