@@ -371,6 +371,8 @@ public class UserInterface {
 				JFileChooser fileChooser = new JFileChooser(new File(rootLocation));
 				fileChooser.setDialogTitle("Add Files");
 				fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				DirectoryRestrictedFileSystemView fsv = new DirectoryRestrictedFileSystemView(new File(rootLocation).getAbsoluteFile());
+				fileChooser.setFileSystemView(fsv.getFileSystemView());
 				fileChooser.setMultiSelectionEnabled(true);
 				fileChooser.showOpenDialog(null);
 				File[] filesSelected = fileChooser.getSelectedFiles();
@@ -418,6 +420,8 @@ public class UserInterface {
 				fileChooser.setAutoscrolls(true);
 				fileChooser.setDialogTitle("Select Directory To Encrypt");
 				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				DirectoryRestrictedFileSystemView fsv = new DirectoryRestrictedFileSystemView(new File(rootLocation).getAbsoluteFile());
+				fileChooser.setFileSystemView(fsv.getFileSystemView());
 				fileChooser.showOpenDialog(null);
 				FileTree.rootNode = (DefaultMutableTreeNode) FileTree.createTree(fileChooser.getSelectedFile().getAbsoluteFile());
 				try {

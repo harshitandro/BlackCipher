@@ -14,8 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import org.apache.commons.codec.binary.Base64;
@@ -48,15 +46,57 @@ public class FileHandler extends Encryption{
 		System.out.println(password);
 	}
 	
-	public FileHandler(){}
 	
 	boolean recheckFilesOnLoad(){
 		
 		return true;
 	}
 	
-	void getFileTreeFromDB() throws SQLException, IOException{
+	/*void getFileTreeFromDB() throws SQLException, IOException{
 		databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base";
+		databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
+		DefaultMutableTreeNode rootNode = null;
+		DefaultMutableTreeNode tempNode = null;;
+		DefaultMutableTreeNode tempParNode,temp = null;
+		File currFile;
+		while(databaseObj.queryResult.next()){
+			currFile = new File(rootDir+File.separator+databaseObj.queryResult.getString("parent"),databaseObj.queryResult.getString("File_Name"));
+			tempNode = new DefaultMutableTreeNode(currFile.getAbsoluteFile());
+			tempParNode = new DefaultMutableTreeNode(currFile.getAbsoluteFile().getParent());
+			if(rootNode!=null)
+				temp=rootNode.getLastLeaf();
+			if(temp!=null){
+				System.out.println(temp.getUserObject().toString()!=tempParNode.getUserObject().toString());
+				System.out.println(temp.getUserObject().toString());
+				System.out.println(tempParNode.getUserObject().toString());
+				while(temp.getUserObject().toString()!=tempParNode.getUserObject().toString()){
+					System.out.println();
+					System.out.println(temp.getUserObject().toString()!=tempParNode.getUserObject().toString());
+					System.out.println(temp.getUserObject().toString());
+					System.out.println(temp.getPreviousLeaf());
+					System.out.println(tempParNode.getUserObject().toString());
+					temp=temp.getPreviousNode();
+					System.out.println(temp.getUserObject().toString()!=tempParNode.getUserObject().toString());
+					System.out.println(temp.getUserObject().toString());
+					System.out.println(tempParNode.getUserObject().toString());
+				}
+				temp.add(tempNode);
+			}
+			else
+				if(rootNode==null)
+					rootNode=tempNode;
+				else
+					rootNode.add(tempNode);
+		}
+		FileTree.rootNode=rootNode;
+		//databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base where Status='D'";
+		//databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
+		//while(databaseObj.queryResult.next()){
+			//fileList.add(new File(rootDir+File.separator+databaseObj.queryResult.getString("parent"),databaseObj.queryResult.getString("File_Name")));
+		//}
+	}*/
+	void getFileTreeFromDB() throws SQLException, IOException{
+		databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base order by File_ID";
 		databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
 		DefaultMutableTreeNode rootNode = null;
 		DefaultMutableTreeNode tempNode = null;;
@@ -80,13 +120,12 @@ public class FileHandler extends Encryption{
 					rootNode.add(tempNode);
 		}
 		FileTree.rootNode=rootNode;
-		databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base where Status='D'";
-		databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
-		while(databaseObj.queryResult.next()){
-			fileList.add(new File(rootDir+File.separator+databaseObj.queryResult.getString("parent"),databaseObj.queryResult.getString("File_Name")));
-		}
+		//databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base where Status='D'";
+		//databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
+		//while(databaseObj.queryResult.next()){
+		//	fileList.add(new File(rootDir+File.separator+databaseObj.queryResult.getString("parent"),databaseObj.queryResult.getString("File_Name")));
+		//}
 	}
-	
 	
 	static String createHash(File fileObj) throws FileNotFoundException, IOException{
 		if (fileObj.getAbsoluteFile().isFile())
@@ -149,21 +188,19 @@ public class FileHandler extends Encryption{
 					if(!databaseObj.checkHash(createHash(x.getAbsoluteFile()),Database.BASE_TABLE))
 						databaseObj.updateDB(fileID,x,1,null);
 					databaseObj.updateDB(fileID,outputFile,2,keyUsed,IVUsed);
-					
+					encryptionObj.secureDelete(x.getAbsoluteFile());
 				}
 			}
 		return true;
 		}
 		else
 			if(Mode==DECRYPTION_MODE){
-				databaseObj.statementStr ="select * from Data_Table_encrypted";
+				databaseObj.statementStr ="select * from Data_Table_encrypted order by File_ID";
 				databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
 				while(databaseObj.queryResult.next()){
 					fileList.add(new File(rootDir+File.separator+SessionID+"_Encrypted",databaseObj.queryResult.getString("File_Name")));
 				}
 				for(File x : fileList){
-						System.out.println(x.getAbsolutePath());
-						System.out.println(createHash(x.getAbsoluteFile()));
 						ResultSet fileInfo = databaseObj.getFileDetails(createHash(x.getAbsoluteFile()),Database.ENCRYPTED_TABLE);
 						fileInfo.next();
 						int fileID=fileInfo.getInt("FILE_ID");
@@ -183,8 +220,10 @@ public class FileHandler extends Encryption{
 						targetOutputStream = new FileOutputStream(outputFile);
 						doFinal(targetInputStream,targetOutputStream,DECRYPTION_MODE,keyUsed,IVUsed);
 						databaseObj.updateDB(fileID,null,3,null);
+						x.getAbsoluteFile().delete();
 				}
-		return true;
+				new File(rootDir+File.separator+SessionID+"_Encrypted").getAbsoluteFile().delete();
+				return true;
 		}
 		return false;
 	}

@@ -68,7 +68,7 @@ public class Database {
 				+ "MD5_Sum varchar(128),"
 				+ "Last_Modified timestamp ,"
 				+ "Status char,"
-				+ "primary key(File_ID,MD5_Sum))";
+				+ "primary key(File_ID))";
 		statement.executeUpdate(statementStr);
 
 		statementStr="create table Data_Table_encrypted ("
