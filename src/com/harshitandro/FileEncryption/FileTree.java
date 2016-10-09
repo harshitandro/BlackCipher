@@ -17,18 +17,12 @@ import javax.swing.tree.MutableTreeNode;
 public class FileTree extends JTree {
 	static DefaultMutableTreeNode rootNode;
 	
-	static MutableTreeNode createTree(File node){
-		DefaultMutableTreeNode ret = null;
-		if (node.getAbsoluteFile().isFile()){
-			ret =  new DefaultMutableTreeNode(node.getAbsoluteFile().getParentFile());
-			ret.add(new DefaultMutableTreeNode(node.getAbsoluteFile()));
-		}
-		if (node.getAbsoluteFile().isDirectory()){
-	    	ret = new DefaultMutableTreeNode(node.getAbsoluteFile());
-	    	for (File child: node.listFiles())
-	    		ret.add(createTree(child));
-	    }
-	    return ret;
-	}
+	static MutableTreeNode createTreeNew(File node) {
+		 DefaultMutableTreeNode ret = new DefaultMutableTreeNode(node);
+	      if (node.isDirectory())
+	         for (File child: node.listFiles())
+	            ret.add(createTreeNew(child));
+	      return ret;
+     }
 }
 

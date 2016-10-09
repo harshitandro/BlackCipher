@@ -48,7 +48,7 @@ public class Database {
 		else
 			connection = DriverManager.getConnection("jdbc:h2:"+rootDirParent+File.separator+sessionID+";MV_STORE=FALSE;IFEXISTS=TRUE",sessionID,password);
 		
-		statement= connection.createStatement();
+		statement= connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,ResultSet.CONCUR_UPDATABLE);
 		if(toCreate)
 			createDB();
 	}
@@ -57,7 +57,13 @@ public class Database {
 		statementStr="create table Details ("
 				+ "session_ID varchar(40) not null,"
 				+ "Creation_Date timestamp not null,"
-				+ "Total_Files int not null)";
+				+ "Last_Access timestamp,"
+				+ "Last_Modified timestamp,"
+				+ "Enc_Files bigint,"
+				+ "Total_Files bigint ,"
+				+ "Total_Size_enc bigint,"
+				+ "Total_Size bigint"
+				+ ")";
 		statement.executeUpdate(statementStr);
 	
 		statementStr="create table Data_Table_base ("
@@ -65,52 +71,80 @@ public class Database {
 				+ "File_Name varchar(255),"
 				+ "Parent varchar(255) not null,"
 				+ "is_Dir boolean not null,"
-				+ "MD5_Sum varchar(128),"
+				+ "MD5_Sum varchar(128) ,"
+				+ "Size bigint,"
 				+ "Last_Modified timestamp ,"
 				+ "Status char,"
-				+ "primary key(File_ID))";
+				+ "primary key(File_ID,MD5_Sum))";
 		statement.executeUpdate(statementStr);
 
 		statementStr="create table Data_Table_encrypted ("
 				+ "File_ID int not null,"
 				+ "File_Name varchar(50) not null,"
-				+ "MD5_Sum varchar(128) not null,"
+				+ "MD5_Sum varchar(128) not null ,"
 				+ "Key_Value blob not null,"
 				+ "IV blob not null,"
+				+ "Size bigint,"
 				+ "Status char not null,"
 				+ "Last_Modified timestamp not null,"
 				+ "primary key(File_ID,MD5_Sum))";
 		statement.executeUpdate(statementStr);
-
-		statementStr="create table File_Tree ("		
-				+ "Node blob not null)";
+			
+		statementStr="CREATE TRIGGER enc_file_count " 
+				+ "AFTER INSERT,DELETE "
+				+ "ON data_table_encrypted  "
+				+ "FOR EACH ROW "
+				+ "CALL \""
+				+  com.harshitandro.FileEncryption.DatabaseTriggers.EncFileCount.class.getName()+"\"";
 		statement.executeUpdate(statementStr);
+		
+		statementStr="CREATE TRIGGER enc_file_size "
+				+ "AFTER INSERT,UPDATE,DELETE "
+				+ "ON data_table_encrypted "
+				+ "FOR EACH ROW "
+				+ "CALL \""
+				+  com.harshitandro.FileEncryption.DatabaseTriggers.EncFileSize.class.getName()+"\"";
+		statement.executeUpdate(statementStr);
+		
+		statementStr="CREATE TRIGGER last_modified "
+				+ "AFTER INSERT,UPDATE,DELETE "
+				+ "ON data_table_base "
+				+ "FOR EACH ROW "
+				+ "CALL \""
+				+ com.harshitandro.FileEncryption.DatabaseTriggers.LastModified.class.getName()+"\"";
+		statement.executeUpdate(statementStr);
+		
+		statementStr="CREATE TRIGGER total_file_count "
+				+ "AFTER INSERT,DELETE "
+				+ "ON data_table_base "
+				+ "FOR EACH ROW "
+				+ "CALL \""
+				+ com.harshitandro.FileEncryption.DatabaseTriggers.TotalFileCount.class.getName()+"\"";
+		statement.executeUpdate(statementStr);
+		
+		statementStr="CREATE TRIGGER total_file_size "
+				+ "AFTER INSERT,UPDATE,DELETE "
+				+ "ON data_table_base "
+				+ "FOR EACH ROW "
+				+ "CALL \""
+				+ com.harshitandro.FileEncryption.DatabaseTriggers.TotalFileSize.class.getName()+ "\"";
+		statement.executeUpdate(statementStr);
+		updateDB(0, null,0, null);
 	}
 
 	void updateDB(int File_ID,File obj , int target , byte[]...keyData) throws Exception{
 		switch(target){
 			//input DB detail table
-			case 0 : 	if(!(statement.executeQuery("select * from Details").first())){
-							statementStr="insert into Details values(?,?,?)";
+			case 0 : 		statementStr="insert into Details(session_id,Creation_date) values(?,?)";
 							updateQuery=connection.prepareStatement(statementStr);
 							updateQuery.setString(1,sessionID);
 							updateQuery.setTimestamp(2,new Timestamp(new Date().getTime()));
-							updateQuery.setInt(3,totalFileCount());
 							updateQuery.execute();
 							break;
-						}
-						else{
-							statementStr="update Details set Total_Files=?,Creation_Date=? where session_ID=?";
-							updateQuery=connection.prepareStatement(statementStr);
-							updateQuery.setString(3,sessionID);
-							updateQuery.setTimestamp(2,new Timestamp(new Date().getTime()));
-							updateQuery.setInt(1,totalFileCount());
-							updateQuery.execute();
-							break;
-						}
+						
 					
 			//Adds new file data to "base" table. 
-			case 1 :   	statementStr="insert into Data_Table_base values (?,?,?,?,?,?,?)";
+			case 1 :   	statementStr="insert into Data_Table_base values (?,?,?,?,?,?,?,?)";
 						updateQuery=connection.prepareStatement(statementStr);
 						updateQuery.setInt(1,getLastID(BASE_TABLE));
 						if(!obj.getAbsoluteFile().isDirectory()){
@@ -124,22 +158,23 @@ public class Database {
 						//System.out.println("Test " +obj.getAbsoluteFile().getParent().substring(rootDir.length()));
 						updateQuery.setString(3,obj.getAbsoluteFile().getParent().substring(rootDir.length()));
 						updateQuery.setBoolean(4,obj.getAbsoluteFile().isDirectory());
-						updateQuery.setTimestamp(6,new Timestamp(obj.getAbsoluteFile().lastModified()));
-						updateQuery.setString(7,"D");
+						updateQuery.setLong(6,FileHandler.sizeOfFile(obj.getAbsoluteFile()));
+						updateQuery.setTimestamp(7,new Timestamp(obj.getAbsoluteFile().lastModified()));
+						updateQuery.setString(8,"D");
 						updateQuery.execute();
-						updateDB(0,null,0,null);
 						break;
 			
 			//upon encryption , generate "encrypted" table entry for the given file 
-			case 2 :	statementStr="insert into Data_Table_encrypted values(?,?,?,?,?,?,?)";
+			case 2 :	statementStr="insert into Data_Table_encrypted values(?,?,?,?,?,?,?,?)";
 						updateQuery=connection.prepareStatement(statementStr);
 						updateQuery.setInt(1,File_ID);
 						updateQuery.setString(2,obj.getAbsoluteFile().getName());
 						updateQuery.setString(3, FileHandler.createHash(obj.getAbsoluteFile()));
 						updateQuery.setBlob(4,new ByteArrayInputStream(keyData[0]));
 						updateQuery.setBlob(5,new ByteArrayInputStream(keyData[1]));
-						updateQuery.setString(6,"E");
-						updateQuery.setTimestamp(7,new Timestamp(obj.getAbsoluteFile().lastModified()));
+						updateQuery.setLong(6,FileHandler.sizeOfFile(obj.getAbsoluteFile()));
+						updateQuery.setString(7,"E");
+						updateQuery.setTimestamp(8,new Timestamp(obj.getAbsoluteFile().lastModified()));
 						updateQuery.execute();
 						//reset data values in 'base' table
 						statementStr="update Data_Table_base set status='E', Last_Modified=? where File_ID=?";
@@ -231,14 +266,15 @@ public class Database {
 	int totalFileCount() throws SQLException{
 		 statementStr="select Count(File_ID) from Data_Table_base where is_Dir=false";
 		 queryResult=statement.executeQuery(statementStr);
-		 queryResult.first();
+		 queryResult.next();
 		 return queryResult.getInt(1);
 		
 	}
 	
 	int totalErcFileCount() throws SQLException{
-		 statementStr="select Count(File_ID) from Data_Table_encrypted,";
+		 statementStr="select Count(File_ID) from Data_Table_encrypted where status='E'";
 		 queryResult=statement.executeQuery(statementStr);
+		 queryResult.next();
 		 return queryResult.getInt(1);
 		
 	}
@@ -266,13 +302,13 @@ public class Database {
 		}
 		if(table==1){
 			statementStr="select * from Data_Table_encrypted where MD5_Sum='"+MD5Str+"'";
-			System.out.println(statementStr);
+			//System.out.println(statementStr);
 			queryResult=statement.executeQuery(statementStr);
 		}
 		return queryResult;
 	}
 	
-	ResultSet getFileDetails(int File_ID, int table) throws SQLException{
+	ResultSet getFileDetails(int File_ID, int table) throws SQLException, InterruptedException{
 		queryResult=null;
 		if(table==0){
 			statementStr="select * from Data_Table_base where FILE_ID='"+File_ID+"'";
@@ -282,6 +318,7 @@ public class Database {
 			statementStr="select * from Data_Table_encrypted where FILE_ID='"+File_ID+"'";
 			queryResult=statement.executeQuery(statementStr);
 		}
+		Thread.currentThread().sleep(40);
 		return queryResult;
 	}
 	

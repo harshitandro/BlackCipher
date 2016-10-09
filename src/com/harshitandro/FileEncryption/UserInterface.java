@@ -1,19 +1,18 @@
 package com.harshitandro.FileEncryption;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.HeadlessException;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
 import java.sql.SQLException;
 
@@ -28,7 +27,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
-import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
@@ -38,7 +36,6 @@ import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
-import jdk.nashorn.internal.scripts.JO;
 
 public class UserInterface {
 
@@ -140,13 +137,17 @@ public class UserInterface {
 		frmBlackCipher.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frmBlackCipher.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
-				if(!flagUnclean)
+				if(!flagUnclean){
+					reset();
 					System.exit(0);
+				}
 				else{
 					String[] options ={"Yes","No"};
 					int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
-					if(selection == 0)
+					if(selection == 0){
+						reset();
 						System.exit(0);
+					}
 				}				
 			}
 		});
@@ -187,6 +188,7 @@ public class UserInterface {
 				JTextField locationField = new JTextField(20);
 				locationField.setEditable(false);
 				JPasswordField passwordField = new JPasswordField(20);
+				passwordField.setToolTipText("Password must contain at least 8 characters");
 				JButton btnLocationBrowse = new JButton("Browse");
 				panel.add(lblPassword);
 				panel.add(passwordField);
@@ -423,7 +425,7 @@ public class UserInterface {
 				DirectoryRestrictedFileSystemView fsv = new DirectoryRestrictedFileSystemView(new File(rootLocation).getAbsoluteFile());
 				fileChooser.setFileSystemView(fsv.getFileSystemView());
 				fileChooser.showOpenDialog(null);
-				FileTree.rootNode = (DefaultMutableTreeNode) FileTree.createTree(fileChooser.getSelectedFile().getAbsoluteFile());
+				FileTree.rootNode = (DefaultMutableTreeNode) FileTree.createTreeNew(fileChooser.getSelectedFile().getAbsoluteFile());
 				try {
 					fileHandlerObj.createFileList();
 					btnFileAdd.setVisible(false);
@@ -539,13 +541,17 @@ public class UserInterface {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(!flagUnclean)
+				if(!flagUnclean){
+					reset();
 					System.exit(0);
+				}
 				else{
 					String[] options ={"Yes","No"};
 					int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
-					if(selection == 0)
+					if(selection == 0){
+						reset();
 						System.exit(0);
+					}
 				}
 			}
 		});
