@@ -31,6 +31,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -64,10 +65,14 @@ public class UserInterface {
 	JLabel lblBackground;
 	int mode = -1;
 	boolean flagUnclean = false;
-	private JProgressBar progressBar;
+	private static JProgressBar progressBar;
 	private JMenu mnSessionOptions;
 	private JMenuItem mntmSaveCurrentSession;
 	private JButton btnDecryptSession;
+	private JLabel lblSize;
+	private JLabel lblFileName;
+	private JLabel lblSizeShow;
+	JLabel lblProcessing;
 
 	void reset() {
 		try {
@@ -97,9 +102,10 @@ public class UserInterface {
 		btnDecryptSession.setVisible(true);
 		btnEncryptSession.setEnabled(true);
 		btnEncryptSession.setVisible(true);
+		resetProgressBar("Ideal");
 	}
 	
-	void setProgressBar(int toSet,String...values){
+	static void setProgressBar(int toSet,String...values){
 		switch(toSet){
 		// to set progress bar to "Indeterminent" .
 			case 1 : progressBar.setString(values[0]);
@@ -109,14 +115,18 @@ public class UserInterface {
 			case 2 : progressBar.setValue(Integer.parseInt(values[1]));
 					 progressBar.setString(values[0]+" : " +progressBar.getValue()+"%");
 					 break;
-		}
+		}		
 	}
 
-	void resetProgressBar(){
-		progressBar.setIndeterminate(false);
-		progressBar.setValue(0);
+	static void resetProgressBar(String text){
+				progressBar.setIndeterminate(false);
+				if(text.isEmpty())
+					progressBar.setValue(0);
+				else{
+					progressBar.setString(text);
+					progressBar.setValue(0);
+				}				
 	}
-	
 	/**
 	 * Create the application.
 	 * 
@@ -155,7 +165,7 @@ public class UserInterface {
 		frmBlackCipher.getContentPane().setBackground(UIManager.getColor("ArrowButton.background"));
 		frmBlackCipher.setTitle("BlackCipher : Folder Locker");
 		frmBlackCipher.setForeground(Color.WHITE);
-		frmBlackCipher.setBounds(new Rectangle(0, 0, 600, 700));
+		frmBlackCipher.setBounds(new Rectangle(750, 0, 600, 710));
 		frmBlackCipher.getContentPane().setName("WelcomePane");
 		frmBlackCipher.getContentPane().setLayout(null);
 
@@ -214,26 +224,6 @@ public class UserInterface {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
-					
-					Thread t = new Thread(new Runnable() {
-						
-						@Override
-						public void run() {
-							// TODO Auto-generated method stub
-							int i = 0;
-							while(i<100){
-								setProgressBar(1, "Progress",Integer.toString(i));
-								i++;
-								try {
-									Thread.sleep(2);
-								} catch (InterruptedException e1) {
-									// TODO Auto-generated catch block
-									e1.printStackTrace();
-								}
-							}
-						}
-					});
-					//t.run();
 					mode = FileHandler.ENCRYPTION_MODE;
 					panelSession.setVisible(true);
 					panelWelcome.setVisible(false);
@@ -337,7 +327,7 @@ public class UserInterface {
 								JOptionPane.WARNING_MESSAGE);
 				} catch (Exception e) {
 					e.printStackTrace();
-					JOptionPane.showMessageDialog(null, "Pasaword entered seems incorrect.Access Denied",
+					JOptionPane.showMessageDialog(null, "Password entered seems incorrect.Access Denied",
 							"Invaild Password", JOptionPane.ERROR_MESSAGE);
 				}
 				flagUnclean=true;
@@ -347,7 +337,7 @@ public class UserInterface {
 		panelWelcome.add(btnLoadSession);
 				
 		panelSession = new JPanel();
-		panelSession.setBounds(6, 6, 582, 624);
+		panelSession.setBounds(6, 6, 584, 620);
 		panelSession.setVisible(false);
 		panelSession.setBorder(UIManager.getBorder("TitledBorder.border"));
 		frmBlackCipher.getContentPane().add(panelSession);
@@ -379,13 +369,17 @@ public class UserInterface {
 				fileChooser.showOpenDialog(null);
 				File[] filesSelected = fileChooser.getSelectedFiles();
 				FileTree.rootNode = new DefaultMutableTreeNode(filesSelected[0].getAbsoluteFile().getParentFile());
+				setProgressBar(1, "Adding Files to Session");
+				
 				for (File temp : filesSelected) {
 					FileTree.rootNode.add(new DefaultMutableTreeNode(temp.getAbsoluteFile()));
 				}
 				try {
+					setProgressBar(1,"Updating Database");
 					fileHandlerObj.createFileList();
 					btnFileAdd.setVisible(false);
 					btnDirAdd.setVisible(false);
+					resetProgressBar("Ideal");
 				} catch (Exception e2) {
 					// TODO Auto-generated catch block
 					e2.printStackTrace();
@@ -426,6 +420,7 @@ public class UserInterface {
 				fileChooser.setFileSystemView(fsv.getFileSystemView());
 				fileChooser.showOpenDialog(null);
 				FileTree.rootNode = (DefaultMutableTreeNode) FileTree.createTreeNew(fileChooser.getSelectedFile().getAbsoluteFile());
+				setProgressBar(1, "Adding Files to Session & Updating Database");
 				try {
 					fileHandlerObj.createFileList();
 					btnFileAdd.setVisible(false);
@@ -450,6 +445,7 @@ public class UserInterface {
 			tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
 			tree.setRootVisible(true);
 			lblBackground.setVisible(false);
+			resetProgressBar("Ideal");
 		}
 		});
 		panelSession.add(btnDirAdd);
@@ -462,8 +458,13 @@ public class UserInterface {
 		btnDecryptSession = new JButton("Decrypt Session");
 		btnDecryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-					try {
+				try {
+						panelSession.setEnabled(false);
 						fileHandlerObj.doFinal(FileHandler.DECRYPTION_MODE);
+						setProgressBar(2,"Decryption Process Completed","100");
+						flagUnclean=false;
+						panelSession.setEnabled(true);
+						
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
@@ -474,13 +475,16 @@ public class UserInterface {
 		btnEncryptSession = new JButton("Encrypt Session");
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-			try {
-					fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
-					flagUnclean=false;
-				} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-				}
+				panelSession.setEnabled(false);
+						try{
+							fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
+							setProgressBar(2,"Encryption Process Completed","100");
+							flagUnclean=false;
+							panelSession.setEnabled(true);
+						} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+						}
 			}
 		});
 		btnEncryptSession.setBounds(435, 562, 129, 28);
@@ -495,7 +499,28 @@ public class UserInterface {
 		progressBar = new JProgressBar();
 		progressBar.setBounds(8, 592, 565, 19);
 		progressBar.setStringPainted(true);
+		resetProgressBar("Ideal");
 		panelSession.add(progressBar);
+		
+		lblProcessing = new JLabel("Processing :");
+		lblProcessing.setFont(new Font("Consolas", Font.BOLD,10));
+		lblProcessing.setBounds(16, 628, 75, 15);
+		frmBlackCipher.getContentPane().add(lblProcessing);
+		
+		lblSize = new JLabel("Size :");
+		lblSize.setFont(new Font("Consolas", Font.BOLD,10));
+		lblSize.setBounds(436, 628, 36, 15);
+		frmBlackCipher.getContentPane().add(lblSize);
+		
+		lblFileName = new JLabel("");
+		lblFileName.setFont(new Font("Consolas", Font.BOLD,10));
+		lblFileName.setBounds(90, 628, 213, 15);
+		frmBlackCipher.getContentPane().add(lblFileName);
+		
+		lblSizeShow = new JLabel("");
+		lblSizeShow.setFont(new Font("Consolas", Font.BOLD,10));
+		lblSizeShow.setBounds(484, 628, 104, 15);
+		frmBlackCipher.getContentPane().add(lblSizeShow);
 
 		font = Font.createFont(Font.TRUETYPE_FONT, new File("fontello.ttf"));
 		font = font.deriveFont(Font.PLAIN, 18f);

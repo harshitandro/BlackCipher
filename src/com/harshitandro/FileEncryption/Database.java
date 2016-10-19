@@ -263,19 +263,35 @@ public class Database {
 		}
 	}
 	
-	int totalFileCount() throws SQLException{
-		 statementStr="select Count(File_ID) from Data_Table_base where is_Dir=false";
+	long totalFileSize() throws SQLException{
+		 statementStr="select Total_Size from details";
 		 queryResult=statement.executeQuery(statementStr);
 		 queryResult.next();
-		 return queryResult.getInt(1);
+		 return queryResult.getLong(1);
 		
 	}
 	
-	int totalErcFileCount() throws SQLException{
-		 statementStr="select Count(File_ID) from Data_Table_encrypted where status='E'";
+	long totalEncFileSize() throws SQLException{
+		 statementStr="select Total_Size_enc from details";
 		 queryResult=statement.executeQuery(statementStr);
 		 queryResult.next();
-		 return queryResult.getInt(1);
+		 return queryResult.getLong(1);
+		
+	}
+	
+	long totalFileCount() throws SQLException{
+		 statementStr="select Total_Files from details";
+		 queryResult=statement.executeQuery(statementStr);
+		 queryResult.next();
+		 return queryResult.getLong(1);
+		
+	}
+	
+	long totalErcFileCount() throws SQLException{
+		 statementStr="select Enc_Files from details";
+		 queryResult=statement.executeQuery(statementStr);
+		 queryResult.next();
+		 return queryResult.getLong(1);
 		
 	}
 	

@@ -9,7 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -33,6 +32,11 @@ public class FileHandler extends Encryption{
 	Database databaseObj;
 	Encryption encryptionObj;
 	public ArrayList<File> fileList = new ArrayList<File>();
+	static long totalSize = 0;
+	static long currFileSize = 0;
+	static long processedSize = 0;
+	static long totalFileCount = 0;
+	static long remainingFileCount = 0;
 	static final int ENCRYPTION_MODE = 1;
 	static final int DECRYPTION_MODE = 0;
 	static final boolean CREATE_DB_TRUE = true;
@@ -53,6 +57,12 @@ public class FileHandler extends Encryption{
 		return true;
 	}
 
+	void progressBarHandler(String string){
+		processedSize+=currFileSize;
+		remainingFileCount--;
+		UserInterface.setProgressBar(2,string,String.valueOf((int)((processedSize/totalSize)*100)));
+	}
+	
 	
 	static long sizeOfFile(File file){
 		return file.getAbsoluteFile().length()/1024; //returns file size in KB
@@ -120,6 +130,10 @@ public class FileHandler extends Encryption{
 	
 	public boolean doFinal(int Mode) throws Exception {
 		if(Mode==ENCRYPTION_MODE){
+			remainingFileCount=0;
+			totalFileCount=databaseObj.totalFileCount()-databaseObj.totalErcFileCount();
+			totalSize = databaseObj.totalFileSize();
+			processedSize=0;
 			OutputDirectory=new File(new File(rootDir),SessionID+"_Encrypted");
 			OutputDirectory.getAbsoluteFile().mkdirs();
 			for(File x : fileList){
@@ -144,7 +158,9 @@ public class FileHandler extends Encryption{
 					if(!databaseObj.checkHash(createHash(x.getAbsoluteFile()),Database.BASE_TABLE))
 						databaseObj.updateDB(fileID,x,1,null);
 					databaseObj.updateDB(fileID,outputFile,2,keyUsed,IVUsed);
+					currFileSize=x.length()/1024;
 					encryptionObj.secureDelete(x.getAbsoluteFile());
+					progressBarHandler("Encrypting Session");
 				}
 			}
 		return true;
