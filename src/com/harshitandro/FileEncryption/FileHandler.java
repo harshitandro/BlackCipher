@@ -69,6 +69,7 @@ public class FileHandler extends Encryption{
 	}
 	
 	void getFileTreeFromDB() throws SQLException, IOException{
+		FileTree.rootNode=null;
 		databaseObj.statementStr ="select File_Name,parent,is_Dir from Data_Table_base order by File_ID";
 		databaseObj.queryResult=databaseObj.statement.executeQuery(databaseObj.statementStr);
 		DefaultMutableTreeNode rootNode = null;
@@ -79,8 +80,11 @@ public class FileHandler extends Encryption{
 			currFile = new File(rootDir+File.separator+databaseObj.queryResult.getString("parent"),databaseObj.queryResult.getString("File_Name"));
 			tempNode = new DefaultMutableTreeNode(currFile.getAbsoluteFile());
 			tempParNode = new DefaultMutableTreeNode(currFile.getAbsoluteFile().getParent());
-			if(rootNode!=null)
+			if(rootNode!=null){
 				temp=rootNode.getLastLeaf();
+				if(((File)temp.getUserObject()).getAbsoluteFile().isFile())
+					temp=temp.getPreviousNode();
+			}
 			if(temp!=null){
 				while(!temp.getUserObject().toString().equals(tempParNode.getUserObject().toString()))
 					temp=temp.getPreviousNode();
@@ -107,17 +111,27 @@ public class FileHandler extends Encryption{
 	}
 	
 	void createFileList() throws Exception{
-		Enumeration<DefaultMutableTreeNode> child = FileTree.rootNode.preorderEnumeration();
-		File temp ;
-		while(child.hasMoreElements()){
-			temp=(File) child.nextElement().getUserObject();
-			if(fileList.indexOf(temp)==-1)
-				fileList.add(temp);
-		}
+//		Enumeration<DefaultMutableTreeNode> child = FileTree.rootNode.preorderEnumeration();
+//		File temp ;
+//		while(child.hasMoreElements()){
+//			temp=(File) child.nextElement().getUserObject();
+//			if(fileList.indexOf(temp)==-1)
+//				fileList.add(temp);
+//		}
 		for(File x : fileList){
 			databaseObj.updateDB(databaseObj.getLastID(Database.BASE_TABLE)+1,x.getAbsoluteFile(),1,null);
 		}
 		databaseObj.connection.commit();
+	}
+	
+	void createFileList(File node){
+		File ret = node;
+		fileList.add(ret.getAbsoluteFile());
+		if(ret.getAbsoluteFile().isDirectory())
+			for(File temp : ret.getAbsoluteFile().listFiles())
+				createFileList(temp);
+//		fileList.add(ret.getAbsoluteFile());
+		return;
 	}
 	
 	public void printFileStorage() throws FileNotFoundException, IOException{

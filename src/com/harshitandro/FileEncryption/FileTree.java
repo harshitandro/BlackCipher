@@ -23,6 +23,8 @@ public class FileTree extends JTree {
 	         for (File child: node.listFiles())
 	            ret.add(createTreeNew(child));
 	      return ret;
-     }
+    }
+	
+	
 }
 

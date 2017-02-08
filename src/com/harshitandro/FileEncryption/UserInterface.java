@@ -14,7 +14,13 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -31,11 +37,15 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
+
+import org.apache.commons.io.FileUtils;
+
 
 
 public class UserInterface {
@@ -77,7 +87,7 @@ public class UserInterface {
 	void reset() {
 		try {
 			if(fileHandlerObj!=null)
-			fileHandlerObj.databaseObj.connection.close();
+				fileHandlerObj.databaseObj.connection.close();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -104,28 +114,28 @@ public class UserInterface {
 		btnEncryptSession.setVisible(true);
 		resetProgressBar("Ideal");
 	}
-	
+
 	static void setProgressBar(int toSet,String...values){
 		switch(toSet){
 		// to set progress bar to "Indeterminent" .
-			case 1 : progressBar.setString(values[0]);
-					 progressBar.setIndeterminate(true);
-					 break;
+		case 1 : progressBar.setString(values[0]);
+		progressBar.setIndeterminate(true);
+		break;
 		// to set progress bar to specified progress percentage
-			case 2 : progressBar.setValue(Integer.parseInt(values[1]));
-					 progressBar.setString(values[0]+" : " +progressBar.getValue()+"%");
-					 break;
+		case 2 : progressBar.setValue(Integer.parseInt(values[1]));
+		progressBar.setString(values[0]+" : " +progressBar.getValue()+"%");
+		break;
 		}		
 	}
 
 	static void resetProgressBar(String text){
-				progressBar.setIndeterminate(false);
-				if(text.isEmpty())
-					progressBar.setValue(0);
-				else{
-					progressBar.setString(text);
-					progressBar.setValue(0);
-				}				
+		progressBar.setIndeterminate(false);
+		if(text.isEmpty())
+			progressBar.setValue(0);
+		else{
+			progressBar.setString(text);
+			progressBar.setValue(0);
+		}				
 	}
 	/**
 	 * Create the application.
@@ -242,7 +252,7 @@ public class UserInterface {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
-					
+
 				} else if (selection == 0
 						&& (locationField.getText().isEmpty() || passwordField.getPassword().length == 0))
 					JOptionPane.showMessageDialog(null, "Mandatory Field Can't Be Left Empty", "Invaild Input",
@@ -335,20 +345,20 @@ public class UserInterface {
 		});
 		btnLoadSession.setBounds(304, 131, 105, 28);
 		panelWelcome.add(btnLoadSession);
-				
+
 		panelSession = new JPanel();
 		panelSession.setBounds(6, 6, 584, 620);
 		panelSession.setVisible(false);
 		panelSession.setBorder(UIManager.getBorder("TitledBorder.border"));
 		frmBlackCipher.getContentPane().add(panelSession);
 		panelSession.setLayout(null);
-				
+
 		lblBackground = new JLabel("No Data To Display");
 		lblBackground.setFont(new Font("Yu Gothic UI", Font.PLAIN, 11));
 		lblBackground.setHorizontalAlignment(SwingConstants.CENTER);
 		lblBackground.setBounds(217, 304, 147, 16);
 		panelSession.add(lblBackground);
-		
+
 		JLabel lblCurrentFileTree = new JLabel("File Tree");
 		lblCurrentFileTree.setHorizontalAlignment(SwingConstants.CENTER);
 		lblCurrentFileTree.setBounds(244, 62, 93, 16);
@@ -368,17 +378,23 @@ public class UserInterface {
 				fileChooser.setMultiSelectionEnabled(true);
 				fileChooser.showOpenDialog(null);
 				File[] filesSelected = fileChooser.getSelectedFiles();
-				FileTree.rootNode = new DefaultMutableTreeNode(filesSelected[0].getAbsoluteFile().getParentFile());
-				setProgressBar(1, "Adding Files to Session");
-				
-				for (File temp : filesSelected) {
-					FileTree.rootNode.add(new DefaultMutableTreeNode(temp.getAbsoluteFile()));
+				fileHandlerObj.fileList.add(fileChooser.getCurrentDirectory());
+				for(File temp : filesSelected){
+					fileHandlerObj.fileList.add(temp.getAbsoluteFile());
+
 				}
+				//				FileTree.rootNode = new DefaultMutableTreeNode(filesSelected[0].getAbsoluteFile().getParentFile());
+				//				setProgressBar(1, "Adding Files to Session");
+				//				
+				//				for (File temp : filesSelected) {
+				//					FileTree.rootNode.add(new DefaultMutableTreeNode(temp.getAbsoluteFile()));
+				//				}
 				try {
 					setProgressBar(1,"Updating Database");
 					fileHandlerObj.createFileList();
-					btnFileAdd.setVisible(false);
-					btnDirAdd.setVisible(false);
+					fileHandlerObj.getFileTreeFromDB();
+					//					btnFileAdd.setVisible(false);
+					//					btnDirAdd.setVisible(false);
 					resetProgressBar("Ideal");
 				} catch (Exception e2) {
 					// TODO Auto-generated catch block
@@ -387,14 +403,14 @@ public class UserInterface {
 
 				tree = new JTree(FileTree.rootNode);
 				tree.setCellRenderer(new DefaultTreeCellRenderer() {
-				public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
-						boolean expanded, boolean leaf, int row, boolean hasFocus) {
-					super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
-					Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-					if (userObject instanceof File) {
-						setText(((File) userObject).getName());
-					}
-					return this;
+					public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
+							boolean expanded, boolean leaf, int row, boolean hasFocus) {
+						super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+						Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+						if (userObject instanceof File) {
+							setText(((File) userObject).getName());
+						}
+						return this;
 					}
 				});
 				scrollPane.setViewportView(tree);
@@ -405,7 +421,7 @@ public class UserInterface {
 			}
 		});
 		panelSession.add(btnFileAdd);
-		
+
 		btnDirAdd = new JLabel("\ue81c");
 		btnDirAdd.setBounds(510, 58, 22, 20);
 		btnDirAdd.setFont(font);
@@ -419,10 +435,11 @@ public class UserInterface {
 				DirectoryRestrictedFileSystemView fsv = new DirectoryRestrictedFileSystemView(new File(rootLocation).getAbsoluteFile());
 				fileChooser.setFileSystemView(fsv.getFileSystemView());
 				fileChooser.showOpenDialog(null);
-				FileTree.rootNode = (DefaultMutableTreeNode) FileTree.createTreeNew(fileChooser.getSelectedFile().getAbsoluteFile());
+				fileHandlerObj.createFileList(fileChooser.getSelectedFile().getAbsoluteFile());
 				setProgressBar(1, "Adding Files to Session & Updating Database");
 				try {
 					fileHandlerObj.createFileList();
+					fileHandlerObj.getFileTreeFromDB();
 					btnFileAdd.setVisible(false);
 					btnDirAdd.setVisible(false);
 				} catch (Exception e2) {
@@ -430,234 +447,308 @@ public class UserInterface {
 				}
 				tree = new JTree(FileTree.rootNode);
 				tree.setCellRenderer(new DefaultTreeCellRenderer() {
-				public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
-				boolean expanded, boolean leaf, int row, boolean hasFocus) {
-				super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
-				Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-				if (userObject instanceof File) {
-					setText(((File) userObject).getName());
-				}
-				return this;
-				}
-			});
-			scrollPane.setViewportView(tree);
-			tree.setBackground(new Color(245, 245, 245));
-			tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
-			tree.setRootVisible(true);
-			lblBackground.setVisible(false);
-			resetProgressBar("Ideal");
-		}
+					public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
+							boolean expanded, boolean leaf, int row, boolean hasFocus) {
+						super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+						Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+						if (userObject instanceof File) {
+							setText(((File) userObject).getName());
+						}
+						return this;
+					}
+				});
+				scrollPane.setViewportView(tree);
+				tree.setBackground(new Color(245, 245, 245));
+				tree.setBorder(new LineBorder(new Color(169, 169, 169), 4, true));
+				tree.setRootVisible(true);
+				lblBackground.setVisible(false);
+				resetProgressBar("Ideal");
+			}
 		});
 		panelSession.add(btnDirAdd);
-		
+
 		JLabel btnSearch = new JLabel("\ue805");
 		btnSearch.setBounds(480, 58, 22, 20);
 		btnSearch.setFont(font);
 		panelSession.add(btnSearch);
-		
+
 		btnDecryptSession = new JButton("Decrypt Session");
 		btnDecryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				try {
-						panelSession.setEnabled(false);
-						fileHandlerObj.doFinal(FileHandler.DECRYPTION_MODE);
-						setProgressBar(2,"Decryption Process Completed","100");
-						flagUnclean=false;
-						panelSession.setEnabled(true);
+				panelSession.setEnabled(false);
+				SwingUtilities.invokeLater(new Runnable() {
+
+					@Override
+					public void run() {
+						try{
+							SwingWorker<Boolean,Integer> worker = new SwingWorker<Boolean,Integer>() {
+
+								@Override
+								protected void process(List<Integer> chunks) {
+									if(chunks.get(chunks.size()-1)==0)
+										setProgressBar(1, "Processing..");
+								}
+
+								@Override
+								protected void done() {
+									try {
+										if(get()){
+											resetProgressBar("Ideal");
+											setProgressBar(2,"Decryption Process Completed","100");
+											flagUnclean=false;
+											panelSession.setEnabled(true);
+										}
+									} catch (InterruptedException | ExecutionException e) {
+										e.printStackTrace();
+									}
+								}
+
+								@Override
+								protected Boolean doInBackground() throws Exception {
+									int i=0;
+									publish(i);
+									fileHandlerObj.doFinal(FileHandler.DECRYPTION_MODE);
+									return true;
+								}
+							};
+							worker.execute();
+						} 
+						catch (Exception e1) {
+							e1.printStackTrace();
+						}
 						
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
 					}
+					
+				});
 			}
 		});
-		
+
+
 		btnEncryptSession = new JButton("Encrypt Session");
 		btnEncryptSession.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				panelSession.setEnabled(false);
+				SwingUtilities.invokeLater(new Runnable() {
+
+					@Override
+					public void run() {
 						try{
-							fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
-							setProgressBar(2,"Encryption Process Completed","100");
-							flagUnclean=false;
-							panelSession.setEnabled(true);
-						} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+							SwingWorker<Boolean,Integer> worker = new SwingWorker<Boolean,Integer>() {
+
+								@Override
+								protected void process(List<Integer> chunks) {
+									if(chunks.get(chunks.size()-1)==0)
+										setProgressBar(1, "Processing..");
+								}
+
+								@Override
+								protected void done() {
+									// TODO Auto-generated method stub
+									try {
+										if(get()){
+											resetProgressBar("Ideal");
+											setProgressBar(2,"Encryption Process Completed","100");
+											flagUnclean=false;
+											panelSession.setEnabled(true);
+										}
+									} catch (InterruptedException | ExecutionException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+								}
+
+								@Override
+								protected Boolean doInBackground() throws Exception {
+									int i=0;
+									publish(i);
+									fileHandlerObj.doFinal(FileHandler.ENCRYPTION_MODE);
+									return true;
+								}
+							};
+							worker.execute();
+						} 
+						catch (Exception e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
 						}
-			}
-		});
-		btnEncryptSession.setBounds(435, 562, 129, 28);
-		panelSession.add(btnEncryptSession);
-		btnDecryptSession.setBounds(294, 562, 129, 28);
-		panelSession.add(btnDecryptSession);
-		scrollPane = new JScrollPane();
-		scrollPane.setBounds(18, 78, 545, 483);
-		scrollPane.setViewportBorder(null);
-		panelSession.add(scrollPane);
-		
-		progressBar = new JProgressBar();
-		progressBar.setBounds(8, 592, 565, 19);
-		progressBar.setStringPainted(true);
-		resetProgressBar("Ideal");
-		panelSession.add(progressBar);
-		
-		lblProcessing = new JLabel("Processing :");
-		lblProcessing.setFont(new Font("Consolas", Font.BOLD,10));
-		lblProcessing.setBounds(16, 628, 75, 15);
-		frmBlackCipher.getContentPane().add(lblProcessing);
-		
-		lblSize = new JLabel("Size :");
-		lblSize.setFont(new Font("Consolas", Font.BOLD,10));
-		lblSize.setBounds(436, 628, 36, 15);
-		frmBlackCipher.getContentPane().add(lblSize);
-		
-		lblFileName = new JLabel("");
-		lblFileName.setFont(new Font("Consolas", Font.BOLD,10));
-		lblFileName.setBounds(90, 628, 213, 15);
-		frmBlackCipher.getContentPane().add(lblFileName);
-		
-		lblSizeShow = new JLabel("");
-		lblSizeShow.setFont(new Font("Consolas", Font.BOLD,10));
-		lblSizeShow.setBounds(484, 628, 104, 15);
-		frmBlackCipher.getContentPane().add(lblSizeShow);
-
-		font = Font.createFont(Font.TRUETYPE_FONT, new File("fontello.ttf"));
-		font = font.deriveFont(Font.PLAIN, 18f);
-
-		menuBar = new JMenuBar();
-		frmBlackCipher.setJMenuBar(menuBar);
-
-		mnFile = new JMenu("File");
-		menuBar.add(mnFile);
-
-		JMenu mnSessionFIle = new JMenu("Session");
-		mnFile.add(mnSessionFIle);
-
-		JMenuItem mntmNewSession = new JMenuItem("New Session");
-		mnSessionFIle.add(mntmNewSession);
-
-		mntmSaveCurrentSession = new JMenuItem("Save Current Session");
-		mntmSaveCurrentSession.setEnabled(false);
-		mnSessionFIle.add(mntmSaveCurrentSession);
-
-		JMenuItem mntmLoadSession = new JMenuItem("Load Session");
-		mnSessionFIle.add(mntmLoadSession);
-
-		JMenuItem mntmReset = new JMenuItem("Reset");
-		mntmReset.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if(!flagUnclean)
-					reset();
-				else{
-					String[] options ={"Yes","No"};
-					int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
-					if(selection == 0)
-						reset();
-				}
-			}
-		});
-		mnFile.add(mntmReset);
-
-		JMenuItem mntmExit = new JMenuItem("Exit");
-		mntmExit.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if(!flagUnclean){
-					reset();
-					System.exit(0);
-				}
-				else{
-					String[] options ={"Yes","No"};
-					int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
-					if(selection == 0){
-						reset();
-						System.exit(0);
+						
 					}
-				}
+					
+				});
 			}
 		});
-		mnFile.add(mntmExit);
 
-		mnOptions = new JMenu("Options");
-		menuBar.add(mnOptions);
+				btnEncryptSession.setBounds(435, 562, 129, 28);
+				panelSession.add(btnEncryptSession);
+				btnDecryptSession.setBounds(294, 562, 129, 28);
+				panelSession.add(btnDecryptSession);
+				scrollPane = new JScrollPane();
+				scrollPane.setBounds(18, 78, 545, 483);
+				scrollPane.setViewportBorder(null);
+				panelSession.add(scrollPane);
 
-		JMenuItem mntmGenerateRandomKey = new JMenuItem("Generate Random Master Password");
-		mnOptions.add(mntmGenerateRandomKey);
+				progressBar = new JProgressBar();
+				progressBar.setBounds(8, 592, 565, 19);
+				progressBar.setStringPainted(true);
+				resetProgressBar("Ideal");
+				panelSession.add(progressBar);
 
-		mnSessionOptions = new JMenu("Session");
-		mnSessionOptions.setEnabled(false);
-		mnOptions.add(mnSessionOptions);
+				lblProcessing = new JLabel("Processing :");
+				lblProcessing.setFont(new Font("Consolas", Font.BOLD,10));
+				lblProcessing.setBounds(16, 628, 75, 15);
+				frmBlackCipher.getContentPane().add(lblProcessing);
 
-		JMenuItem mntmBackup = new JMenuItem("Backup");
-		mnSessionOptions.add(mntmBackup);
+				lblSize = new JLabel("Size :");
+				lblSize.setFont(new Font("Consolas", Font.BOLD,10));
+				lblSize.setBounds(436, 628, 36, 15);
+				frmBlackCipher.getContentPane().add(lblSize);
 
-		JMenuItem mntmMoveToOther = new JMenuItem("Move To Other Location");
-		mnSessionOptions.add(mntmMoveToOther);
+				lblFileName = new JLabel("");
+				lblFileName.setFont(new Font("Consolas", Font.BOLD,10));
+				lblFileName.setBounds(90, 628, 213, 15);
+				frmBlackCipher.getContentPane().add(lblFileName);
 
-		JMenuItem mntmPlurgeSession = new JMenuItem("Plurge Session");
-		mnSessionOptions.add(mntmPlurgeSession);
-		
-		JMenuItem mntmChangePassword = new JMenuItem("Change Password");
-		mntmChangePassword.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				String password=JOptionPane.showInputDialog(frmBlackCipher,"Enter New Password ","New Password",JOptionPane.QUESTION_MESSAGE);
-				if(fileHandlerObj.databaseObj.changeDBPassword(password))
-					JOptionPane.showMessageDialog(frmBlackCipher,"Password Changed Successfully","Session's Password Changes",JOptionPane.INFORMATION_MESSAGE);
-				else
-					JOptionPane.showMessageDialog(frmBlackCipher,"Password Change Failed","Failed",JOptionPane.WARNING_MESSAGE);
-			}
-		});
-		mnSessionOptions.add(mntmChangePassword);
+				lblSizeShow = new JLabel("");
+				lblSizeShow.setFont(new Font("Consolas", Font.BOLD,10));
+				lblSizeShow.setBounds(484, 628, 104, 15);
+				frmBlackCipher.getContentPane().add(lblSizeShow);
 
-		mnHelp = new JMenu("Help");
-		menuBar.add(mnHelp);
+				font = Font.createFont(Font.TRUETYPE_FONT, new File("fontello.ttf"));
+				font = font.deriveFont(Font.PLAIN, 18f);
 
-		mntmContent = new JMenuItem("Help Contents");
-		mnHelp.add(mntmContent);
+				menuBar = new JMenuBar();
+				frmBlackCipher.setJMenuBar(menuBar);
 
-		mntmAbout = new JMenuItem("About");
-		mnHelp.add(mntmAbout);
+				mnFile = new JMenu("File");
+				menuBar.add(mnFile);
 
+				JMenu mnSessionFIle = new JMenu("Session");
+				mnFile.add(mnSessionFIle);
+
+				JMenuItem mntmNewSession = new JMenuItem("New Session");
+				mnSessionFIle.add(mntmNewSession);
+
+				mntmSaveCurrentSession = new JMenuItem("Save Current Session");
+				mntmSaveCurrentSession.setEnabled(false);
+				mnSessionFIle.add(mntmSaveCurrentSession);
+
+				JMenuItem mntmLoadSession = new JMenuItem("Load Session");
+				mnSessionFIle.add(mntmLoadSession);
+
+				JMenuItem mntmReset = new JMenuItem("Reset");
+				mntmReset.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if(!flagUnclean)
+							reset();
+						else{
+							String[] options ={"Yes","No"};
+							int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
+							if(selection == 0)
+								reset();
+						}
+					}
+				});
+				mnFile.add(mntmReset);
+
+				JMenuItem mntmExit = new JMenuItem("Exit");
+				mntmExit.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if(!flagUnclean){
+							reset();
+							System.exit(0);
+						}
+						else{
+							String[] options ={"Yes","No"};
+							int selection=JOptionPane.showConfirmDialog(null, "Current Session is in dirty state.Any uncommited changes will be discarded.\nDo you wish to proceed ?","Terminate Session",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
+							if(selection == 0){
+								reset();
+								System.exit(0);
+							}
+						}
+					}
+				});
+				mnFile.add(mntmExit);
+
+				mnOptions = new JMenu("Options");
+				menuBar.add(mnOptions);
+
+				JMenuItem mntmGenerateRandomKey = new JMenuItem("Generate Random Master Password");
+				mnOptions.add(mntmGenerateRandomKey);
+
+				mnSessionOptions = new JMenu("Session");
+				mnSessionOptions.setEnabled(false);
+				mnOptions.add(mnSessionOptions);
+
+				JMenuItem mntmBackup = new JMenuItem("Backup");
+				mnSessionOptions.add(mntmBackup);
+
+				JMenuItem mntmMoveToOther = new JMenuItem("Move To Other Location");
+				mnSessionOptions.add(mntmMoveToOther);
+
+				JMenuItem mntmPlurgeSession = new JMenuItem("Plurge Session");
+				mnSessionOptions.add(mntmPlurgeSession);
+
+				JMenuItem mntmChangePassword = new JMenuItem("Change Password");
+				mntmChangePassword.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						String password=JOptionPane.showInputDialog(frmBlackCipher,"Enter New Password ","New Password",JOptionPane.QUESTION_MESSAGE);
+						if(fileHandlerObj.databaseObj.changeDBPassword(password))
+							JOptionPane.showMessageDialog(frmBlackCipher,"Password Changed Successfully","Session's Password Changes",JOptionPane.INFORMATION_MESSAGE);
+						else
+							JOptionPane.showMessageDialog(frmBlackCipher,"Password Change Failed","Failed",JOptionPane.WARNING_MESSAGE);
+					}
+				});
+				mnSessionOptions.add(mntmChangePassword);
+
+				mnHelp = new JMenu("Help");
+				menuBar.add(mnHelp);
+
+				mntmContent = new JMenuItem("Help Contents");
+				mnHelp.add(mntmContent);
+
+				mntmAbout = new JMenuItem("About");
+				mnHelp.add(mntmAbout);
+
+		}
+
+		public JMenu getMnOptions() {
+			return mnOptions;
+		}
+
+		public JMenu getMnHelp() {
+			return mnHelp;
+		}
+
+		public JMenuBar getMenuBar() {
+			return menuBar;
+		}
+
+		public JMenu getMnFile() {
+			return mnFile;
+		}
+
+		public JMenuItem getMntmContent() {
+			return mntmContent;
+		}
+
+		public JMenuItem getMntmAbout() {
+			return mntmAbout;
+		}
+
+		public JTree getTree() {
+			return tree;
+		}
+
+		public JScrollPane getScrollPane() {
+			return scrollPane;
+		}
+
+		public JPanel getPanelSession() {
+			return panelSession;
+		}
 	}
-
-	public JMenu getMnOptions() {
-		return mnOptions;
-	}
-
-	public JMenu getMnHelp() {
-		return mnHelp;
-	}
-
-	public JMenuBar getMenuBar() {
-		return menuBar;
-	}
-
-	public JMenu getMnFile() {
-		return mnFile;
-	}
-
-	public JMenuItem getMntmContent() {
-		return mntmContent;
-	}
-
-	public JMenuItem getMntmAbout() {
-		return mntmAbout;
-	}
-
-	public JTree getTree() {
-		return tree;
-	}
-
-	public JScrollPane getScrollPane() {
-		return scrollPane;
-	}
-
-	public JPanel getPanelSession() {
-		return panelSession;
-	}
-}
